@@ -53,6 +53,10 @@ Use the existing `tests/real/` harness when changes affect API integration, auth
 
 Do not create another feature-specific real-backend harness unless necessary.
 
+Document integration uses `node tests/real/run.mjs --documents` and then `node tests/real/run.mjs --documents --nginx`. The existing harness owns a fresh PostgreSQL test container, Backend temporary file storage and OIDC provider. `APP_SECURITY_ORIGIN` explicitly matches the Vite/Nginx origin even when the Backend test profile has a fixed default. It never mutates the running port-8080 workspace. Results and responsive screenshots are under `.auth-validation/vite` and `.auth-validation/nginx`.
+
+`tests/real/documents.mjs` covers actual draft creation, serialized writes, dropped-response reconciliation, publication, block restoration, multipart/clipboard/drop uploads, authenticated downloads, JSON/file boundaries, navigation protection and deletion. Existing Journal CRUD regressions remain in `npx playwright test --config playwright.journals.config.ts`; their document collection requests are aborted so that this isolated fixture suite never falls through to a live unauthenticated API or introduces a Document success mock.
+
 ## Validation
 
 Run the checks relevant to the change:

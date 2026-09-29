@@ -2,6 +2,26 @@ import { expect, it, vi } from 'vitest';
 import { QueryManager } from './queryManager';
 
 const policy = { freshForMs: 1_000, gcAfterMs: 5_000, revalidateOnFocus: true } as const;
+it('stops scheduling sweeps after eviction and can load the retained query adapter again', async () => {
+  vi.useFakeTimers();
+  const manager = new QueryManager();
+  const fetcher = vi.fn(async () => ({ value: 1 }));
+  const query = manager.get({
+    key: 'document:gc',
+    contract: 'document-detail',
+    policy: { freshForMs: 0, gcAfterMs: 60000, revalidateOnFocus: false },
+    fetcher,
+  });
+  await query.load();
+  await vi.advanceTimersByTimeAsync(60001);
+  expect(query.getSnapshot().data).toBeUndefined();
+  expect(vi.getTimerCount()).toBe(0);
+  await query.load();
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(query.getSnapshot().data).toEqual({ value: 1 });
+  manager.dispose();
+  vi.useRealTimers();
+});
 
 it('shares a successful query during its freshness window and revalidates after expiry', async () => {
   vi.useFakeTimers();

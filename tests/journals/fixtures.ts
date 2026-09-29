@@ -1,4 +1,4 @@
-import { savedHomeFixture } from '../api-fixtures';
+import { setup as setupDashboard } from '../dashboard/fixtures';
 import { test as base, expect, type Page } from '@playwright/test';
 
 export const id = (n: number) => '00000000-0000-0000-0000-' + String(n).padStart(12, '0');
@@ -37,6 +37,9 @@ export const identity = {
 };
 
 export async function setup(page: Page) {
+  await setupDashboard(page);
+  // This suite covers existing Journal CRUD; document success is verified against the real API.
+  await page.route('**/api/v2/journals/*/documents?*', (route) => route.abort('failed'));
   await page.route('**/api/v1/me', (route) => route.fulfill({ json: identity }));
   await page.route('**/api/v1/project-categories', (route) =>
     route.fulfill({ json: { items: [], total: 0 } }),
@@ -112,7 +115,7 @@ export const test = base.extend<{ isolation: void }>({
         const pathname = new URL(request.url()).pathname;
         if (
           pathname.startsWith('/api/') &&
-          !/^\/api\/(?:v1\/(?:me$|auth\/|project-categories(?:\/|$))|v2\/(?:projects(?:\/|$)|tasks(?:\/|$)|journals(?:\/|$)|milestones(?:\/|$)|links(?:\/|$)|dashboards\/home$|overview$))/.test(
+          !/^\/api\/(?:v1\/(?:me$|auth\/|project-categories(?:\/|$)|widget-types$|widgets(?:\/|$))|v2\/(?:projects(?:\/|$)|tasks(?:\/|$)|journals(?:\/|$)|milestones(?:\/|$)|links(?:\/|$)|overview$)|v3\/dashboards\/home(?:\/|$))/.test(
             pathname,
           )
         )
@@ -127,11 +130,6 @@ export const test = base.extend<{ isolation: void }>({
             throw new Error('Business storage access');
           };
       }, sentinels);
-      await context.route('**/api/v2/dashboards/home', (route) =>
-        route.fulfill({
-          json: { id: 'home', schemaVersion: 2, revision: 1, widgets: savedHomeFixture },
-        }),
-      );
       await context.route('**/api/v2/projects/category-counts', (route) =>
         route.fulfill({
           json: {

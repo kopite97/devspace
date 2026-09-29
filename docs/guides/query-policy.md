@@ -1,7 +1,7 @@
 # 서버 조회 정책 적용 지침
 
 신규 서버 데이터 조회와 기존 조회 변경 시 사용하는 개발 기준이다.
-공통 모듈·자동 검사 구현은 [PLAN-0022](../plans/PLAN-0022-project-query-cache.md)의 제안이며 **현재 동작하거나 강제되는 기능으로 간주하지 않는다**. 구현 전에는 아래 기준으로 설계를 검토하고, 완료 시 실제 모듈·명령·예외 목록을 이 문서에 연결한다.
+[PLAN-0022](../plans/PLAN-0022-project-query-cache.md)의 [QueryManager](../../src/shared/http/queryManager.ts)와 `check:queries`가 구현되어 있다. 신규 조회는 인증된 작업실에서 주입받은 manager를 사용한다. 자동 검사는 직접 `new Query` 생성의 명시적 예외 목록을 검사하며 모든 네트워크 우회를 정적으로 증명하는 도구는 아니다.
 
 ## 적용 구조
 
@@ -24,7 +24,13 @@
 6. 인증·CSRF·로그아웃·mutation은 읽기 캐시 대상이 아니다. 기존 transport의 보안·revision·세션 세대 검증과 오류 복구를 유지한다.
 7. 재방문, 만료·강제 조회, 저장 후 갱신, 오류·재시도, 세션 교체·늦은 응답을 검증한다. 페이지가 있으면 커서·필터 변경을, 공유 소비자가 있으면 한 소비자 이탈과 회수 경계를 추가한다.
 
-## 자동 검사와 예외 관리 — PLAN-0022 구현 대상
+## Document 조회 정책
+
+[DocumentStore](../../src/features/documents/store.ts)와 [JournalDocuments](../../src/features/journal/documentCollection.ts)는 `freshForMs: 0`, `gcAfterMs: 60000`, `revalidateOnFocus: false`를 선언한다. 상세 키에는 UUID, Journal별 문서 목록 키에는 Journal UUID와 limit을 포함하며 추가 페이지는 동일 조회 안의 cursor chain으로 관리한다. 재방문·명시적 새로고침은 다시 읽고 focus는 편집 내용을 교체하지 않는다.
+
+Document 저장·게시·삭제는 문서 상세와 Journal 문서 목록을 무효화한다. Journal 변경은 별도 Viewer projection과 문서 목록도 무효화한다. 같은 PrivateWorkspace manager를 사용하며 세션 종료 때 일괄 취소한다. 회수된 조회 adapter는 재사용하지만 비어 있는 조회의 반복 GC timer는 예약하지 않는다. 기존 Journal CRUD 저장소 전체를 전환하지는 않는다.
+
+## 자동 검사와 예외 관리
 
 - 공통 생성 API는 정책 선언을 필수 인자로 받아 누락을 타입 검사로 막는다. 인증된 작업실에서 주입받은 관리 객체를 사용하며 기능별로 별도 객체를 만들지 않는다.
 - `check:queries` 정적 검사는 운영 소스의 직접 Query 생성, 공통 HTTP 경로 밖의 네트워크 호출, 허용되지 않은 저수준 모듈 접근을 검사한다. import 별칭·재수출도 검사 대상으로 한다. 테스트·로컬 도구는 운영 코드와 구분한다.

@@ -31,6 +31,11 @@ import { readCategoryFilter, readProjectFilter } from '../../features/projects/c
 import { useQuery } from '../../shared/http/query';
 import { freshTransport } from '../../shared/http/freshTransport';
 import { QueryManager } from '../../shared/http/queryManager';
+import { DocumentStore } from '../../features/documents/store';
+import type { DocumentMemory } from '../../features/documents/controller';
+import { DocumentWorkspace } from '../../features/documents/DocumentWorkspace';
+import { JournalDocuments } from '../../features/journal/documentCollection';
+import { ServerJournalViewerPage } from '../../pages/ServerJournalViewerPage';
 export function PrivateWorkspace({
   transport: sessionTransport,
   url,
@@ -39,12 +44,14 @@ export function PrivateWorkspace({
   displayName,
   workspaceName,
   sessionControls,
+  sessionError,
   sessionNotice,
   taskMemory,
   journalMemory,
   milestoneMemory,
   linkMemory,
   dashboardMemory,
+  documentMemory,
 }: {
   transport: PrivateTransport;
   url: URL;
@@ -53,12 +60,14 @@ export function PrivateWorkspace({
   displayName: string;
   workspaceName: string;
   sessionControls: ReactNode;
+  sessionError?: string;
   sessionNotice?: ReactNode;
   taskMemory: TaskMemory;
   journalMemory: JournalMemory;
   milestoneMemory: MilestoneMemory;
   linkMemory: LinkMemory;
   dashboardMemory: HomeMemory;
+  documentMemory: DocumentMemory;
 }) {
   const [transport] = useState(() =>
     freshTransport(sessionTransport, (paths) => {
@@ -77,6 +86,9 @@ export function PrivateWorkspace({
   const [dashboard] = useState(() => new DashboardStore(transport));
   const [links] = useState(() => new LinkStore(transport));
   const [queryManager] = useState(() => new QueryManager());
+  const [documents] = useState(() => new DocumentStore(transport, queryManager));
+  const [journalDocuments] = useState(() => new JournalDocuments(transport, queryManager));
+  documents.onChanged = () => journalDocuments.invalidateDocuments();
   const [projects] = useState(() => new ProjectStore(transport, queryManager));
   const [categories] = useState(() => new CategoryStore(transport));
   const [overview] = useState(() => new OverviewStore(transport));
@@ -115,7 +127,10 @@ export function PrivateWorkspace({
     milestoneOptions.invalidate();
     milestones.invalidate();
   };
-  journals.onInvalidate = () => dashboard.invalidate();
+  journals.onInvalidate = () => {
+    dashboard.invalidate();
+    journalDocuments.invalidateJournals();
+  };
   milestones.onInvalidate = () => dashboard.invalidate();
   links.onInvalidate = () => dashboard.invalidate();
   useEffect(() => {
@@ -163,6 +178,36 @@ export function PrivateWorkspace({
   ]);
   const pathname = url.pathname.replace(/\/+$/, '') || '/';
   const renderPage = () => {
+    const journalMatch = pathname.match(
+      /^\/journals\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/,
+    );
+    if (journalMatch)
+      return (
+        <ServerJournalViewerPage
+          key={journalMatch[1]}
+          id={journalMatch[1]}
+          store={journalDocuments}
+          onBack={() => onNavigate(documentMemory.returns[pathname] ?? '/journals')}
+          onDocument={(id, editing) => {
+            documentMemory.returns[id] = pathname;
+            onNavigate(`/documents/${id}${editing ? '/edit' : ''}`);
+          }}
+        />
+      );
+    const documentMatch = pathname.match(
+      /^\/documents\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(\/edit)?$/,
+    );
+    if (documentMatch)
+      return (
+        <DocumentWorkspace
+          key={pathname}
+          id={documentMatch[1]}
+          editing={!!documentMatch[2]}
+          store={documents}
+          memory={documentMemory}
+          onNavigate={onNavigate}
+        />
+      );
     if (pathname === '/library')
       return (
         <div className="link-surface">
@@ -212,6 +257,7 @@ export function PrivateWorkspace({
           )}
           renderJournals={(project) => (
             <ApiProjectJournals
+              onOpenJournal={(id) => onNavigate(`/journals/${id}`)}
               store={journals}
               options={journalOptions}
               memory={journalMemory}
@@ -243,6 +289,13 @@ export function PrivateWorkspace({
     if (pathname === '/journals')
       return (
         <ServerJournalsPage
+          documents={journalDocuments}
+          onOpenJournal={(id) => onNavigate(`/journals/${id}`)}
+          onDocumentCreated={(id, journalId) => {
+            documentMemory.returns[id] = `/journals/${journalId}`;
+            documentMemory.returns[`/journals/${journalId}`] = pathname + url.search;
+            onNavigate(`/documents/${id}/edit`);
+          }}
           categories={categoryState.data?.items ?? []}
           store={journals}
           options={journalOptions}
@@ -287,6 +340,7 @@ export function PrivateWorkspace({
       displayName={displayName}
       workspaceName={workspaceName}
       sessionControls={sessionControls}
+      sessionError={sessionError}
       sessionNotice={sessionNotice}
     >
       {(() => {

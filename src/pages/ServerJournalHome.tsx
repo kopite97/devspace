@@ -2,7 +2,15 @@ import { WidgetFrame } from '../features/dashboard/WidgetFrame';
 import { ApiRecentJournals } from '../features/journal/ApiRecentJournals';
 import type { JournalStore } from '../features/journal/apiStore';
 
-export function ServerJournalHome({ store, limit = 3 }: { store: JournalStore; limit?: number }) {
+export function ServerJournalHome({
+  store,
+  limit = 3,
+  onNavigate,
+}: {
+  store: JournalStore;
+  limit?: number;
+  onNavigate: (path: string) => void;
+}) {
   return (
     <div className="journal-home-surface">
       <WidgetFrame
@@ -22,7 +30,11 @@ export function ServerJournalHome({ store, limit = 3 }: { store: JournalStore; l
         onEdit={() => {}}
         onRemove={() => {}}
       >
-        <ApiRecentJournals store={store} limit={limit} />
+        <ApiRecentJournals
+          store={store}
+          limit={limit}
+          onOpenJournal={(id) => onNavigate(`/journals/${id}`)}
+        />
       </WidgetFrame>
     </div>
   );

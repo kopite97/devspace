@@ -1,0 +1,119 @@
+.document-surface {
+  --document-gutter: 54px;
+  min-width: 0;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+.document-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.document-status {
+  flex: 1;
+  font-size: 13px;
+}
+.document-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.document-paper {
+  width: 100%;
+  max-width: calc(800px + 2 * var(--document-gutter));
+  margin-inline: auto;
+  padding-block: 40px 24px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.document-heading {
+  padding: 0 var(--document-gutter) 24px;
+}
+.document-heading h1,
+.document-title {
+  font: inherit;
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 700;
+  line-height: 1.4;
+  width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.document-title {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  padding: 8px 0;
+  border-radius: 0;
+}
+.document-title:focus {
+  outline: none;
+}
+.document-title:focus-visible {
+  border-bottom-color: var(--accent);
+}
+.document-blocks {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.document-blocks .bn-container {
+  font-family: inherit;
+  --bn-colors-editor-background: transparent;
+}
+.document-blocks .bn-editor {
+  min-height: 300px;
+  padding-inline: var(--document-gutter);
+  background: transparent;
+}
+.document-blocks .bn-block-content[data-content-type='table'],
+.document-blocks .bn-block-content[data-content-type='codeBlock'] {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.document-readonly input[type='checkbox'] {
+  pointer-events: none;
+}
+.document-attachments {
+  width: 100%;
+  max-width: calc(800px + 2 * var(--document-gutter));
+  margin-inline: auto;
+  padding: 20px var(--document-gutter);
+  overflow-wrap: anywhere;
+}
+.document-attachments > .button {
+  margin: 4px 8px 4px 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.document-attachments details > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px;
+}
+.journal-viewer {
+  margin-bottom: 24px;
+}
+@media (max-width: 600px) {
+  .document-surface {
+    --document-gutter: 28px;
+  }
+  .document-paper {
+    padding-block: 20px;
+  }
+  .document-heading {
+    padding-bottom: 20px;
+  }
+  .document-actions {
+    width: 100%;
+  }
+  .document-toolbar .button {
+    min-height: 40px;
+  }
+}

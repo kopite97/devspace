@@ -7,6 +7,7 @@ import type { JournalStore } from '../features/journal/apiStore';
 import type { JournalMemory } from '../features/journal/draftMemory';
 import type { JournalProjectOptions } from '../features/journal/projectOptions';
 import { ApiJournalWorkspace } from '../features/journal/ApiJournalWorkspace';
+import type { JournalDocuments } from '../features/journal/documentCollection';
 
 export function ServerJournalsPage({
   store,
@@ -15,6 +16,9 @@ export function ServerJournalsPage({
   memory,
   url,
   onFilterNavigate,
+  documents,
+  onOpenJournal,
+  onDocumentCreated,
 }: {
   store: JournalStore;
   options: JournalProjectOptions;
@@ -22,6 +26,9 @@ export function ServerJournalsPage({
   categories: readonly CategoryOption[];
   url: URL;
   onFilterNavigate: (path: string) => void;
+  documents: JournalDocuments;
+  onOpenJournal: (id: string) => void;
+  onDocumentCreated: (id: string, journalId: string) => void;
 }) {
   const category = readCategoryFilter(url.searchParams);
   const query = url.searchParams.get('q') ?? '';
@@ -29,6 +36,9 @@ export function ServerJournalsPage({
     <ApiJournalWorkspace
       key={url.pathname + url.search}
       store={store}
+      documents={documents}
+      onOpenJournal={onOpenJournal}
+      onDocumentCreated={onDocumentCreated}
       options={options}
       memory={memory}
       category={category}

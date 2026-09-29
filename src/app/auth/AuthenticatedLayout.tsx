@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { AppLayout } from '../layouts/AppLayout';
 import { SidebarView } from '../layouts/SidebarView';
 import { TopbarView } from '../layouts/TopbarView';
+import { AccountMenu } from '../layouts/AccountMenu';
 import { pagePaths, readLocation } from '../routes';
 import type { ProjectStore } from '../../features/projects/apiStore';
 import type { CategoryStore } from '../../features/projects/categoryStore';
@@ -17,6 +18,7 @@ export function AuthenticatedLayout({
   workspaceName,
   sessionControls,
   sessionNotice,
+  sessionError,
 }: {
   url: URL;
   onNavigate: (path: string) => boolean;
@@ -27,6 +29,7 @@ export function AuthenticatedLayout({
   workspaceName: string;
   sessionControls: ReactNode;
   sessionNotice?: ReactNode;
+  sessionError?: string;
 }) {
   const [profile, setProfile] = useState(false);
   const state = useQuery(projects.counts);
@@ -38,7 +41,7 @@ export function AuthenticatedLayout({
       entryKey={url.pathname + url.search}
       detail={profile ? { title: displayName, body: workspaceName } : null}
       closeDetail={() => setProfile(false)}
-      sessionControls={sessionControls}
+      hasFooter={location.notFound || !location.pathname.startsWith('/documents/')}
       sessionNotice={sessionNotice}
       renderSidebar={(menu) => (
         <SidebarView
@@ -109,6 +112,16 @@ export function AuthenticatedLayout({
           onMenu={menu.open}
           menuOpen={menu.isOpen}
           menuRef={menu.triggerRef}
+          accountMenu={
+            <AccountMenu
+              key={url.pathname + url.search}
+              avatar={avatar}
+              displayName={displayName}
+              error={sessionError}
+            >
+              {sessionControls}
+            </AccountMenu>
+          }
         />
       )}
     >

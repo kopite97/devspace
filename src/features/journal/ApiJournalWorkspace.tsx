@@ -11,6 +11,8 @@ import type { JournalMemory } from './draftMemory';
 import type { JournalFilter, JournalStore } from './apiStore';
 import { ApiJournalEditor } from './ApiJournalEditor';
 import type { JournalProjectOptions } from './projectOptions';
+import type { JournalDocuments } from './documentCollection';
+import { CreateDocumentDialog } from './CreateDocumentDialog';
 
 export function ApiJournalWorkspace({
   store,
@@ -24,6 +26,9 @@ export function ApiJournalWorkspace({
   to,
   sort,
   onFilterNavigate,
+  documents,
+  onOpenJournal,
+  onDocumentCreated,
 }: {
   store: JournalStore;
   options: JournalProjectOptions;
@@ -35,6 +40,9 @@ export function ApiJournalWorkspace({
   from: string;
   to: string;
   sort: 'newest' | 'oldest';
+  documents: JournalDocuments;
+  onOpenJournal: (id: string) => void;
+  onDocumentCreated: (id: string, journalId: string) => void;
   onFilterNavigate: (
     category: CategoryFilter,
     query: string,
@@ -48,7 +56,8 @@ export function ApiJournalWorkspace({
   const setTo = (value: string) => onFilterNavigate(category, queryText, { to: value });
   const setSort = (value: string) => onFilterNavigate(category, queryText, { sort: value });
   const [editing, setEditing] = useState(false);
-  const [detail, setDetail] = useState<ApiJournal>();
+  const [selecting, setSelecting] = useState(false);
+  const [creatingDocument, setCreatingDocument] = useState<ApiJournal>();
   const [deleting, setDeleting] = useState<ApiJournal>();
   const [notice, setNotice] = useState('');
   const [deleteNotice, setDeleteNotice] = useState('');
@@ -171,10 +180,13 @@ export function ApiJournalWorkspace({
         title="개발 일지"
         description="작업의 맥락과 다음 단계를 기록하세요."
         actions={
-          <Button variant="primary" onClick={startCreate}>
-            <Plus size={16} />
-            일지 작성
-          </Button>
+          <>
+            <Button onClick={() => setSelecting(true)}>새 글 작성</Button>
+            <Button variant="primary" onClick={startCreate}>
+              <Plus size={16} />
+              일지 작성
+            </Button>
+          </>
         }
         filters={
           <div className="section-toolbar classification-toolbar workbench-filter-toolbar">
@@ -235,7 +247,7 @@ export function ApiJournalWorkspace({
               state={state}
               list={list}
               onEdit={startEdit}
-              onDetail={setDetail}
+              onDetail={(journal) => onOpenJournal(journal.id)}
               onDelete={setDeleting}
               pending={pending}
             />
@@ -251,13 +263,46 @@ export function ApiJournalWorkspace({
           onSaved={saveComplete}
         />
       )}
-      {detail && (
-        <Modal title={detail.title} onClose={() => setDetail(undefined)}>
-          <p className="detail-body">{detail.body}</p>
-          <p className="journal-detail-meta">
-            {detail.projectName} · {detail.entryDate}
+      {selecting && (
+        <Modal title="새 글을 연결할 일지 선택" onClose={() => setSelecting(false)}>
+          <p>
+            현재 목록에서 일지를 직접 선택해 주세요. 원하는 일지가 없으면 목록의 검색·필터를
+            변경하거나 일지를 먼저 작성하세요.
           </p>
+          {state.data?.items.map((journal) => (
+            <Button
+              key={journal.id}
+              onClick={() => {
+                setSelecting(false);
+                setCreatingDocument(journal);
+              }}
+            >
+              {journal.title} · {journal.projectName} · {journal.entryDate}
+            </Button>
+          ))}
+          {state.data?.nextCursor && (
+            <Button disabled={state.status === 'loading'} onClick={() => void store.more(filter)}>
+              일지 더 불러오기
+            </Button>
+          )}
+          {!state.data?.items.length && <p>선택할 일지가 없습니다.</p>}
+          <Button
+            onClick={() => {
+              setSelecting(false);
+              startCreate();
+            }}
+          >
+            일지 작성
+          </Button>
         </Modal>
+      )}
+      {creatingDocument && (
+        <CreateDocumentDialog
+          journal={creatingDocument}
+          store={documents}
+          onClose={() => setCreatingDocument(undefined)}
+          onCreated={(id) => onDocumentCreated(id, creatingDocument.id)}
+        />
       )}
       {deleting && (
         <Modal title="개발일지를 삭제할까요?" onClose={() => setDeleting(undefined)}>

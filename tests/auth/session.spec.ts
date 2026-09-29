@@ -1,4 +1,9 @@
+import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
+async function openProfile(page: Page) {
+  const trigger = page.getByRole('button', { name: '??? ??', exact: true });
+  if ((await trigger.getAttribute('aria-expanded')) !== 'true') await trigger.click();
+}
 const alice = {
   id: '11111111-1111-4111-8111-111111111111',
   displayName: 'Alice',
@@ -61,6 +66,7 @@ test('pending CSRF blocks duplicate logout; bodyless success clears identity', a
     return route.fulfill({ status: 204 });
   });
   await page.goto('/');
+  await openProfile(page);
   await page.getByRole('button', { name: 'Log out', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Logging out…' })).toBeDisabled();
   expect(posts).toBe(0);
@@ -91,6 +97,7 @@ test('CSRF recovery requires explicit retry and repeated rejection stops refresh
     return route.fulfill({ status: 403, json: { code: 'CSRF_INVALID' } });
   });
   await page.goto('/');
+  await openProfile(page);
   await page.getByRole('button', { name: 'Log out', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Session security was refreshed');
   expect({ me, csrf, posts }).toEqual({ me: 2, csrf: 2, posts: 1 });
@@ -123,6 +130,7 @@ for (const mode of ['offline', 'malformed'] as const)
           : route.fulfill({ contentType: 'text/html', body: '<html>wrong</html>' }),
       );
       await page.goto('/');
+      await openProfile(page);
       await page.getByRole('button', { name: 'Log out', exact: true }).click();
       await expect(page.getByRole('status')).toHaveText('Checking your session…');
       await expect(
@@ -148,6 +156,7 @@ for (const status of [401, 503])
     );
     await page.route('**/api/v1/auth/logout', (route) => route.abort());
     await page.goto('/');
+    await openProfile(page);
     await page.getByRole('button', { name: 'Log out', exact: true }).click();
     await expect(
       page.getByRole('heading', {
@@ -179,6 +188,7 @@ test('known account switch cancels pending token and never sends the old logout'
   });
   await page.goto('/');
   const tokenRequested = page.waitForRequest('**/api/v1/auth/csrf');
+  await openProfile(page);
   await page.getByRole('button', { name: 'Log out', exact: true }).click();
   await tokenRequested;
   identity = bob;
@@ -191,6 +201,7 @@ test('known account switch cancels pending token and never sends the old logout'
     page.getByRole('region', { name: 'Bob · Bob workspace', exact: true }),
   ).toBeVisible();
   release();
+  await openProfile(page);
   await expect(page.getByRole('button', { name: 'Log out', exact: true })).toBeEnabled();
   expect(posts).toBe(0);
 });
@@ -220,7 +231,9 @@ for (const broadcast of [true, false])
     await expect(
       other.getByRole('region', { name: 'Alice · Alice workspace', exact: true }),
     ).toBeVisible();
+    await openProfile(page);
     await expect(page.getByRole('button', { name: 'Log out', exact: true })).toBeEnabled();
+    await openProfile(page);
     await page.getByRole('button', { name: 'Log out', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Sign in to your workspace' })).toBeVisible();
     if (!broadcast)

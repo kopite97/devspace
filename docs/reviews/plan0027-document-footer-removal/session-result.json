@@ -1,0 +1,11 @@
+{
+  "boundary": "vite",
+  "passed": true,
+  "protocol": {
+    "authorizations": 4,
+    "exchanges": 4,
+    "pkce": 4
+  },
+  "businessRows": 3,
+  "excludedRequests": 0
+}

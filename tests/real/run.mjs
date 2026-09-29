@@ -1,4 +1,5 @@
 import { validateLinks } from './links.mjs';
+import { validateDocuments } from './documents.mjs';
 import { validateDashboard } from './dashboard.mjs';
 import { validateProjects } from './projects.mjs';
 import { validateCategories } from './categories.mjs';
@@ -27,6 +28,7 @@ if (!backend) throw new Error('No sibling backend checkout with gradlew.bat was 
 const phase = process.argv.find((arg) => arg.startsWith('--projects='))?.split('=')[1];
 const categoryPhase = process.argv.includes('--categories');
 const categoryOnlyPhase = process.argv.includes('--category-only');
+const documentPhase = process.argv.includes('--documents');
 const taskPhase = process.argv.find((arg) => arg.startsWith('--tasks='))?.split('=')[1];
 const journalPhase = process.argv.find((arg) => arg.startsWith('--journals='))?.split('=')[1];
 const milestonePhase = process.argv.find((arg) => arg.startsWith('--milestones='))?.split('=')[1];
@@ -104,6 +106,7 @@ try {
       ],
     }),
     APP_ORIGIN: origin,
+    APP_SECURITY_ORIGIN: origin,
     SESSION_COOKIE_SECURE: 'false',
     OIDC_GOOGLE_CLIENT_ID: 'test-google-client',
     OIDC_GOOGLE_CLIENT_SECRET: 'test-google-secret',
@@ -217,7 +220,7 @@ try {
     const url = new URL(request.url());
     if (
       url.pathname.startsWith('/api/') &&
-      !/^\/api\/(?:v1\/(?:me$|auth\/|project-categories(?:\/|$)|widget-types$|widgets(?:\/|$))|v2\/(?:projects(?:\/|$)|tasks(?:\/|$)|journals(?:\/|$)|milestones(?:\/|$)|links(?:\/|$)|overview$)|v3\/dashboards\/home(?:\/|$))/.test(
+      !/^\/api\/(?:v1\/(?:me$|auth\/|project-categories(?:\/|$)|widget-types$|widgets(?:\/|$))|v2\/(?:projects(?:\/|$)|tasks(?:\/|$)|journals(?:\/|$)|documents(?:\/|$)|attachments(?:\/|$)|milestones(?:\/|$)|links(?:\/|$)|overview$)|v3\/dashboards\/home(?:\/|$))/.test(
         url.pathname,
       )
     )
@@ -353,6 +356,17 @@ try {
   if (milestonePhase)
     await validateMilestones({ page, context, origin, sql, alice, output, phase: milestonePhase });
   if (dashboardPhase) await validateDashboard({ page, context, origin, sql, alice, output });
+  if (documentPhase) {
+    for (const route of ['/', '/projects', '/tasks', '/journals', '/library']) {
+      await page.goto(origin + route);
+      await expect(page.locator('.page-footer')).toBeVisible();
+      await expect(page.locator('main .session-controls')).toHaveCount(0);
+      await page.getByRole('button', { name: '프로필 메뉴', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Log out', exact: true })).toHaveCount(1);
+      await page.keyboard.press('Escape');
+    }
+    await validateDocuments({ page, context, origin, sql, alice, output });
+  }
   const businessRowsBeforeAuth = sql(
     'select (select count(*) from projects)+(select count(*) from tasks)+(select count(*) from journals)+(select count(*) from milestones)+(select count(*) from links)',
   );
@@ -404,12 +418,19 @@ try {
     )[0],
     alice.id,
   );
+  await page.route('**/api/v1/auth/logout', async (route) => {
+    await route.abort('failed');
+    await page.unroute('**/api/v1/auth/logout');
+  });
+  await page.getByRole('button', { name: '프로필 메뉴', exact: true }).click();
+  await page.getByRole('button', { name: 'Log out', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Retry logout', exact: true })).toBeVisible();
   const [uiLogoutResponse] = await Promise.all([
     page.waitForResponse(
       (response) =>
         response.url() === origin + '/api/v1/auth/logout' && response.request().method() === 'POST',
     ),
-    page.getByRole('button', { name: 'Log out', exact: true }).click(),
+    page.getByRole('button', { name: 'Retry logout', exact: true }).click(),
   ]);
   assert.equal(uiLogoutResponse.status(), 204);
   await expect(page.getByRole('heading', { name: '로그인하여 계속하세요' })).toBeVisible();
@@ -440,7 +461,7 @@ try {
     ),
     businessRowsBeforeAuth,
   );
-  assert.equal(provider.stats.pkce, 3);
+  assert.equal(provider.stats.pkce, documentPhase ? 4 : 3);
   assert.equal(excluded.length, 0);
   await page.screenshot({ path: path.join(output, 'entry.png'), fullPage: true });
   execFileSync('taskkill', ['/PID', String(backendProcess.pid), '/T', '/F'], {

@@ -8,7 +8,7 @@ Frontend와 Backend는 구현 PLAN을 작성하기 전에 본 계약을 기준�
 
 한쪽에서 임의로 계약을 변경하지 않는다.
 
-현재 API 경로·ID·Pagination 예시는 Backend PLAN의 `proposed` 상태에 맞춘 Mock 검증용 제안이다. 최종 승인되거나 구현된 API를 뜻하지 않으며 실제 Integration 전 Backend와 공용 계약·OpenAPI를 대조해 확정한다.
+2026-09-23 로컬 Swagger/OpenAPI에서 Document 6개·Attachment 3개 operation과 DTO를 확인했다. `DocumentSnapshot.attachments` 필수 배열로 Registry metadata 복원 계약이 확정되었다. [Backend 보완 결과](document-editor-backend-followup.md)를 기준으로 구현하며 실제 CRUD/파일 복원은 별도 통합 검증으로 확인한다.
 
 JournalId·DocumentId·AttachmentId·documentSpaceId·authorId 및 createdBy는 wire에서 UUID 문자열을 기준으로 한다. Frontend는 이 식별자를 opaque string으로 다루고 숫자로 변환하거나 값의 구조로 관계를 추론하지 않는다. 아래 UUID는 설명용 예시다.
 
@@ -124,6 +124,8 @@ documentSpaceId
 ```
 
 정확한 Entity Mapping은 기존 Backend Architecture를 따른다.
+
+위 구조는 내부 관계 설명이다. 현재 공개 JournalResponse에는 documentSpaceId가 없으며 Frontend Journal parser의 필수 필드로 추가하지 않는다.
 
 ---
 
@@ -260,7 +262,7 @@ Backend는 자체 Block Schema를 정의하지 않는다.
 
 Document 생성 및 목록은 Journal Context에서 수행한다.
 
-개념 API:
+API:
 
 ```http
 POST /api/v2/journals/{journalId}/documents
@@ -268,13 +270,13 @@ POST /api/v2/journals/{journalId}/documents
 GET /api/v2/journals/{journalId}/documents?limit=20&cursor={cursor}
 ```
 
-실제 Path Naming은 기존 `journals` API Convention과 충돌 여부를 확인한 뒤 최종 확정한다.
+위 경로는 live OpenAPI에 등록되어 있다. 생성 201은 DRAFT 상세, 목록 200은 items/total/nextCursor를 반환한다.
 
 ---
 
 # 13. Generic Document 생성 API
 
-1차 Public API에서 다음 맥락 없는 생성 Endpoint를 기본 진입점으로 사용하지 않는다.
+1차 Public API는 다음 전역 생성 Endpoint를 제공하지 않는다.
 
 ```http
 POST /api/v2/documents
@@ -286,7 +288,7 @@ Document 생성은 Journal의 DocumentSpace를 통해 수행한다.
 
 # 14. Generic Document 목록 API
 
-1차 사용자 기능에는 다음 전역 목록 Endpoint를 필수로 두지 않는다.
+1차 Public API는 다음 전역 목록 Endpoint를 제공하지 않는다.
 
 ```http
 GET /api/v2/documents
@@ -314,7 +316,7 @@ POST   /api/v2/documents/{documentId}/publish
 
 # 16. Create Document Request
 
-개념:
+예시:
 
 ```json
 {
@@ -334,7 +336,7 @@ updatedAt
 publishedAt
 ```
 
-Backend가 `journalId`로 Journal의 DocumentSpace를 Resolve한다.
+Backend가 `journalId`로 Journal의 DocumentSpace를 Resolve한다. 제목은 빈 문자열 허용·최대 200, content는 빈 JSON 배열 허용·UTF-8 직렬화 최대 1MiB다. 생성에는 replay 보장이 없으므로 timeout 후 자동 재시도하지 않는다.
 
 ---
 
@@ -347,6 +349,7 @@ Backend가 `journalId`로 Journal의 DocumentSpace를 Resolve한다.
   "title": "",
   "content": [...],
   "attachmentIds": [],
+  "attachments": [],
   "status": "DRAFT",
   "authorId": "550e8400-e29b-41d4-a716-446655440010",
   "createdAt": "2026-09-22T16:30:00+09:00",
@@ -370,6 +373,7 @@ Client가 변경하지 않는다.
   "title": "오늘의 개발 기록",
   "content": [...],
   "attachmentIds": ["550e8400-e29b-41d4-a716-446655440501", "550e8400-e29b-41d4-a716-446655440502"],
+  "attachments": [...],
   "status": "DRAFT",
   "authorId": "550e8400-e29b-41d4-a716-446655440010",
   "createdAt": "2026-09-22T16:30:00+09:00",
@@ -382,7 +386,7 @@ Client가 변경하지 않는다.
 
 Attachment Relation에서 파생되는 API DTO 값이다.
 
-Registry 복원용 metadata의 제공 방식은 실제 Integration 전 확정 조건이다. Document Detail에 metadata를 포함할지, 별도 metadata API를 둘지, Backend가 승인한 다른 매핑 방식을 사용할지 합의해야 한다. Frontend가 filename·URL parsing으로 ID·MIME·소유 관계를 추론해서는 안 된다. Mock 전용 임시 resolver는 실제 API 계약이 아니며, 실제 연결 시 이 기능에 추가한 모든 Mock과 함께 제거한다.
+위 상세 예시에는 추가 필수 필드인 `attachments`가 포함되어야 한다. `AttachedSnapshot[]`는 `id, documentId, originalFilename, contentType, size, status, contentUrl, createdAt`을 모두 제공하며 status는 ATTACHED다. attachmentIds와 같은 snapshot·UUID 순서이고 최대 100개 전체를 반환하며 TEMP는 제외한다. 일부 누락·소속 불일치·중복·길이 불일치는 오류로 처리한다. filename·URL parsing으로 소유 관계를 추론하거나 실패를 빈 Registry로 대체하지 않는다. 서버 ATTACHED 응답을 병합할 때 저장 중 새로 업로드한 TEMP 및 detach 후 Undo용 metadata를 보존한다.
 
 ---
 
@@ -465,7 +469,9 @@ PUT Document
 
 동일 Document에 대한 Save Request는 직렬화한다.
 
-Backend는 각 PUT을 해당 시점 Document 전체 상태로 취급한다.
+Backend는 각 PUT을 해당 시점 Document 전체 상태로 취급한다. title/content/attachmentIds가 필수이며 attachmentIds는 중복 없는 UUID 배열 최대 100개다. []는 모든 연결을 해제한다. PUT 성공은 200 문서 상세다.
+
+문서 revision/ETag 계약은 없으며 session 내 직렬화가 다중 탭 lost update를 방지하지는 않는다. X-Workspace-Data-Revision은 10진 문자열 freshness 관측 값이며 편집 잠금/revision이 아니다.
 
 ---
 
@@ -475,7 +481,7 @@ Backend는 각 PUT을 해당 시점 Document 전체 상태로 취급한다.
 POST /api/v2/documents/{documentId}/publish
 ```
 
-Frontend는 최신 PUT이 성공한 이후 Publish를 수행한다.
+Frontend는 최신 PUT이 성공한 이후 본문 없는 Publish를 수행한다. 성공은 200 문서 상세다. PUBLISHED도 PUT으로 수정할 수 있고 반복 게시 시 최초 publishedAt을 유지한다. 저장된 수정은 재게시 전 비공개 초안이 아니다.
 
 ```text
 Latest Editor State
@@ -489,13 +495,13 @@ Publish
 
 # 24. Journal Document List
 
-개념:
+예시:
 
 ```http
 GET /api/v2/journals/{journalId}/documents?limit=20&cursor={cursor}
 ```
 
-목록에서는 전체 `content`와 `attachmentIds`를 반환하지 않는다.
+목록은 상세에서 documentSpaceId/content/attachmentIds/attachments를 제외한 요약을 반환한다.
 
 예:
 
@@ -517,7 +523,7 @@ GET /api/v2/journals/{journalId}/documents?limit=20&cursor={cursor}
 }
 ```
 
-Mock 기준은 기존 Backend의 `limit + cursor` 및 `{items, total, nextCursor}` Convention에 맞춘다. 첫 요청은 cursor를 생략하고 이후에는 서버가 반환한 opaque `nextCursor`를 그대로 전달한다. `nextCursor: null`은 마지막 페이지를 뜻한다. 정렬·limit 제한과 최종 계약은 실제 Integration 전에 확정한다.
+limit은 기본 20, 범위 1–100이며 createdAt/id 내림차순이다. 검색·상태 필터는 제공하지 않는다. 첫 요청에는 cursor를 생략하고 opaque nextCursor를 그대로 전달하며 null은 마지막 페이지다. 한 응답의 total/page는 동일 snapshot이나 여러 페이지는 단일 snapshot이 아니다.
 
 ---
 
@@ -535,7 +541,7 @@ documentId = 550e8400-e29b-41d4-a716-446655440123
 file       = <binary>
 ```
 
-Document가 존재하기 전에 Attachment를 Upload할 수 없다.
+Document가 존재하기 전에 Attachment를 Upload할 수 없다. documentId 텍스트와 file 1개를 전송하며 성공은 201 TEMP 첨부 정보다. PNG/JPEG/PDF/UTF-8 TXT만 허용하고 빈 파일은 거부하며 기본 파일당 10MiB다. 업로드 timeout 재시도는 중복을 만들 수 있으므로 자동 replay하지 않는다. multipart 11MiB 등 실제 설정 경계는 Frontend Requirements와 대조·검증한다.
 
 ---
 
@@ -571,19 +577,7 @@ GET /api/v2/attachments/{attachmentId}/content
 
 이 Endpoint는 안정적인 Application URL이다.
 
-Backend 내부에서는:
-
-```text
-Binary Streaming
-```
-
-또는:
-
-```text
-Temporary Presigned URL Redirect
-```
-
-방식을 사용할 수 있다.
+현재 구현은 인증된 binary streaming이다. TEMP/ATTACHED 모두 조회할 수 있고 삭제 claim 이후에는 404가 될 수 있다. PNG/JPEG는 inline, PDF/TXT는 다운로드한다. Content-Type/Length/Disposition과 no-store 응답을 따르며 range/cache 지원을 가정하지 않는다. Presigned redirect는 현재 계약에 포함하지 않는다.
 
 ---
 
@@ -619,7 +613,7 @@ ATTACHED:
 ATTACHMENT_IN_USE
 ```
 
-먼저 Document에서 제거하고 Save하여 TEMP로 전환한다.
+먼저 Document에서 제거하고 Save하여 TEMP로 전환한다. TEMP DELETE 성공 200 {deletedId}는 파일과 metadata 삭제 완료를 뜻한다. 저장소 장애 503에서는 durable retry claim이 유지될 수 있으며 삭제 진행 중 재연결/중복 삭제는 409로 처리한다.
 
 ---
 
@@ -669,7 +663,7 @@ Attachments
 MinIO Objects
 ```
 
-가 함께 정리되어야 한다.
+정리는 Backend 책임이다. DELETE 200 {deletedId}는 DB 삭제와 파일 정리 작업 영속화를 뜻하며 실제 물리 파일 삭제는 장애 시 지연될 수 있다. Frontend가 파일별 삭제를 연쇄 호출하지 않는다.
 
 ---
 
@@ -864,3 +858,7 @@ Frontend는 MinIO와 직접 통신하지 않는다.
 ```
 
 Frontend와 Backend의 구현 PLAN은 이 계약을 기준으로 작성한다.
+
+## 공통 보안·오류 및 검증 근거
+
+세션 인증과 변경 요청의 X-CSRF-Token·Origin 정책을 유지한다. 오류 응답은 {code,message,fieldErrors,requestId}; 400/401/403/404/409/413/415/500/503을 구분한다. 문서 입력·생성·업로드 제한의 상세 UX는 [Frontend Requirements](DOCUMENT_EDITOR_FRONTEND_REQUIREMENTS.md), 구현·실제 검증 범위는 [PLAN-0025](../plans/PLAN-0025-journal-document-editor.md)를 따른다.

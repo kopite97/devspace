@@ -13,11 +13,13 @@ export function ApiProjectJournals({
   options,
   memory,
   project,
+  onOpenJournal,
 }: {
   store: JournalStore;
   options: JournalProjectOptions;
   memory: JournalMemory;
   project: JournalProjectOption;
+  onOpenJournal: (id: string) => void;
 }) {
   const target = 'create:' + project.id;
   const [editing, setEditing] = useState(memory.editor?.target === target);
@@ -46,7 +48,13 @@ export function ApiProjectJournals({
           {notice}
         </p>
       )}
-      <ApiRecentJournals store={store} projectId={project.id} limit={3} emptyAction={action} />
+      <ApiRecentJournals
+        store={store}
+        projectId={project.id}
+        limit={3}
+        emptyAction={action}
+        onOpenJournal={onOpenJournal}
+      />
       {editing && memory.editor?.target === target && (
         <ApiJournalEditor
           store={store}

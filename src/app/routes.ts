@@ -29,11 +29,15 @@ export function readLocation(url: URL): WorkspaceLocation {
     }
   }
   const scope = url.searchParams.get('scope');
+  const isDocument =
+    /^\/(?:journals|documents)\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:\/edit)?$/.test(
+      pathname,
+    );
   return {
     pathname,
-    page: projectId ? '프로젝트' : (page ?? '나의 홈'),
+    page: isDocument ? '개발 일지' : projectId ? '프로젝트' : (page ?? '나의 홈'),
     projectId,
-    notFound: !page && !projectId,
+    notFound: !page && !projectId && !isDocument,
     filter: scope === 'unity' || scope === 'server' ? scope : 'all',
     query: url.searchParams.get('q') ?? '',
     showArchivedProjects: url.searchParams.get('archived') === 'true',

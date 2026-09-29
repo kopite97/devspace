@@ -1,4 +1,5 @@
-const supported = /^(?:\/|\/projects(?:\/[^/]+)?|\/tasks|\/journals|\/library)$/;
+const supported =
+  /^(?:\/|\/projects(?:\/[^/]+)?|\/tasks|\/journals(?:\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?|\/documents\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:\/edit)?|\/library)$/;
 
 export function safeReturnTo(candidate: string): string {
   if (!candidate.startsWith('/') || candidate.startsWith('//') || /[\\#\s]/.test(candidate))

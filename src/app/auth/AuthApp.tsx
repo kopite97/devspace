@@ -9,6 +9,7 @@ import { PrivateWorkspace } from './PrivateWorkspace';
 import { projectHandoff } from './projectHandoff';
 import { taskHandoff } from './taskHandoff';
 import { journalHandoff } from './journalHandoff';
+import { documentHandoff } from './documentHandoff';
 import { linkHandoff } from './linkHandoff';
 import { milestoneHandoff } from './milestoneHandoff';
 import { confirmNavigation } from '../../shared/lib/navigationGuard';
@@ -19,6 +20,7 @@ const getDashboardMemory = dashboardHandoff(session);
 const getProjectMemory = projectHandoff(session);
 const getTaskMemory = taskHandoff(session);
 const getJournalMemory = journalHandoff(session);
+const getDocumentMemory = documentHandoff(session);
 const getLinkMemory = linkHandoff(session);
 const getMilestoneMemory = milestoneHandoff(session);
 
@@ -36,6 +38,7 @@ export function AuthApp() {
           getProjectMemory().category ||
           getTaskMemory().editor ||
           getJournalMemory().editor ||
+          getDocumentMemory().draft ||
           getMilestoneMemory().editor ||
           getLinkMemory().editor ||
           getDashboardMemory().editor ||
@@ -49,6 +52,12 @@ export function AuthApp() {
     getProjectMemory().category = undefined;
     getTaskMemory().editor = undefined;
     getJournalMemory().editor = undefined;
+    getDocumentMemory().draft = undefined;
+    if (
+      /^\/journals\/[0-9a-f-]+$/.test(path) &&
+      !/^\/(?:documents|journals)\//.test(locationRef.current.pathname)
+    )
+      getDocumentMemory().returns[path] = locationRef.current.pathname + locationRef.current.search;
     getMilestoneMemory().editor = undefined;
     getLinkMemory().editor = undefined;
     getDashboardMemory().editor = undefined;
@@ -97,6 +106,7 @@ export function AuthApp() {
             getProjectMemory().category ||
             getTaskMemory().editor ||
             getJournalMemory().editor ||
+            getDocumentMemory().draft ||
             getMilestoneMemory().editor ||
             getLinkMemory().editor ||
             getDashboardMemory().editor ||
@@ -121,6 +131,7 @@ export function AuthApp() {
       getProjectMemory().category = undefined;
       getTaskMemory().editor = undefined;
       getJournalMemory().editor = undefined;
+      getDocumentMemory().draft = undefined;
       getMilestoneMemory().editor = undefined;
       getLinkMemory().editor = undefined;
       getDashboardMemory().editor = undefined;
@@ -171,6 +182,7 @@ export function AuthApp() {
           <div className="auth-app">{sessionControls}</div>
         ) : (
           <PrivateWorkspace
+            sessionError={notice}
             transport={{
               request: session.request,
               lifecycle: session.lifecycle,
@@ -182,6 +194,7 @@ export function AuthApp() {
             memory={getProjectMemory()}
             taskMemory={getTaskMemory()}
             journalMemory={getJournalMemory()}
+            documentMemory={getDocumentMemory()}
             milestoneMemory={getMilestoneMemory()}
             linkMemory={getLinkMemory()}
             dashboardMemory={getDashboardMemory()}

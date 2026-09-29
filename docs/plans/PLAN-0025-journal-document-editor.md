@@ -1,44 +1,40 @@
-# Plan: Journal에서 연결하는 공용 Document Editor 1차 UI/UX
+# Plan: Journal에서 연결하는 공용 Document Editor 실제 API 연동
 
 Status: `proposed`
 Date: 2026-09-22
+Revised: 2026-09-23
 
 ## Goal
 
-Journals 목록에서 Journal Viewer Page로 이동하고, Journal별 Document 목록·생성에서 공용 BlockNote Editor와 Read-only Viewer로 이어지는 사용자 흐름을 검증한다. 제목·본문 자동 저장, 최신 저장 후 게시, 이미지·파일 첨부와 실패 복구를 임시 Mock API Adapter로 완성하는 하나의 변경이다.
+Journals 목록 → Journal Viewer Page → Journal별 Document 목록·생성 → 공용 BlockNote Editor/Read-only Viewer 흐름을 실제 Backend API에 연결한다. 제목·본문 자동 저장, 최신 저장 후 게시, 이미지·파일 첨부와 실패 복구를 구현한다.
 
-이번 단계의 완료는 **Mock 기반 Frontend UI/UX 검증 완료**를 뜻한다. 병렬 개발 중인 Backend API의 가용성, 실제 인증·스토리지 통합 또는 Production 출시 완료를 뜻하지 않는다. 이 문서는 구현 승인이 아닌 계획 제안이며, 명시적 승인 전에는 `active`로 전환하거나 코드·패키지·Mock을 구현하지 않는다.
+2026-09-23 사용자가 보완된 계획의 실행을 승인해 active로 전환했다. 패키지 설치·구현·실제 통합 검증을 순서대로 진행한다. 종전 Mock 우선 개발·별도 실제 연동 단계는 이번 수정으로 대체한다. 완료는 실제 Frontend/API 통합 검증을 뜻하며 Production 배포를 뜻하지 않는다.
 
 ## Scope
 
 - In scope:
-  - `/journals`의 새 글 작성 진입점, Journal Context 선택·확인, Journal 상세 Modal의 Page 전환.
-  - Mock Journal Detail과 Journal별 Document 목록·DRAFT 생성.
-  - `documentId` 기반 공용 Document Editor/Viewer, 기본 BlockNote 기능, 분리된 제목, Autosave·Publish·삭제 오류 처리.
-  - Image/File Upload·Attachment Registry·현재 본문의 `attachmentIds`·첨부 조회 실패 UX.
-  - 기존 Router·인증 경계·QueryManager·HTTP·공용 UI를 이용한 구성, 접근성·반응형·관련 회귀 검증.
-  - API/Service Layer 뒤의 개발·검증 전용 Mock과 실제 연결 시 **이 작업에서 추가한 모든 Mock을 제거하는 전환 절차**.
+  - Journal Context 선택·확인과 새 글 작성, 인증 앱의 Journal 읽기 상세 Modal을 Page로 전환.
+  - 기존 Journal 상세 API와 실제 Journal Document 목록·DRAFT 생성, documentId 기반 Editor/Viewer.
+  - BlockNote 기본 기능, 별도 제목, Autosave·Publish·삭제 및 오류 복구.
+  - 실제 multipart 업로드, Attachment Registry·현재 본문의 attachmentIds, 첨부 표시·다운로드·복원.
+  - 기존 Router·인증·QueryManager·HTTP·공용 UI, FormData 전송과 프론트 Nginx 용량/timeout 설정 검토.
+  - 기존 단위·브라우저 및 disposable real harness를 이용한 접근성·반응형·실제 Vite/Nginx 통합 검증.
 - Out of scope:
-  - Backend 구현·변경, 실제 Backend API Integration 완료, MinIO 직접 접근, Production 배포.
-  - Project/Milestone/Resource Document 연동, DocumentSpace 관리 UI/API, 전역 Document 생성·목록.
-  - Custom Block/Slash Command, GitHub/Server/Kubernetes/외부 API Block, Realtime Collaboration, WebSocket Sync.
-  - Comment/Discussion, Mention, Template, History/Revision 기능, Share Link, Relation, Page Tree, Database View, Kanban, Calendar, AI.
-  - 기존 Journal body를 BlockNote로 변환하거나 Document로 자동 이관하는 작업, 다른 기능의 캐시 일괄 전환, 전역 디자인 개편.
-  - 미래 도메인을 위한 owner registry, plugin framework, 범용 관계 Store/API의 선행 구현.
-  - 새로운 lint 도구·설정·규칙·script·관련 ADR 도입. 필요하면 별도의 Repository Tooling 개선 작업으로 다룬다.
+  - Backend 구현 변경, MinIO 직접 접근, Production 배포, 실제 사용자 업무 데이터에 검증용 mutation.
+  - DocumentSpace CRUD, 전역 Document 생성·목록, Project/Milestone/Resource Document 연결, Unpublish.
+  - Custom Block/Slash, 외부 API Block, Realtime/Collaboration/WebSocket, Comment/Mention/Template/History/Share/AI.
+  - 기존 Journal body의 BlockNote 변환·자동 이관, 전체 캐시 전환, 전역 디자인 개편, 미래 owner registry/plugin framework.
+  - 개발용 가짜 서버·Mock preview·임시 metadata resolver·운영 fallback 구축, 새로운 lint 도구·설정·ADR.
 
 ## Changes
 
-### 1. 기준 문서와 선례
+### 1. 기준 문서와 확인 근거
 
-요구사항의 기준은 [Frontend Requirements](../requirements/DOCUMENT_EDITOR_FRONTEND_REQUIREMENTS.md)와 [Common Domain & API Contract](../requirements/DOCUMENT_EDITOR_COMMON_CONTRACT.md)다. 이번 사용자 요청의 Mock 우선·Journal Page 전환·명확한 작성 진입점·실제 연동 제외 조건을 함께 적용한다. 개념 API 예시를 현재 Backend에 존재하는 Endpoint로 간주하지 않는다.
-
-- 지침: [루트 AGENTS](../../AGENTS.md), [문서 AGENTS](../AGENTS.md), [소스 AGENTS](../../src/AGENTS.md), [APP](../../src/app/APP.md), [PAGES](../../src/pages/PAGES.md), [FEATURES](../../src/features/FEATURES.md), [SHARED](../../src/shared/SHARED.md), [PLANS](PLANS.md), [Runtime Template](PLAN-TEMPLATE-RUNTIME.md).
-- 개발 기준: [CONVENTIONS](../guides/CONVENTIONS.md), [ENVIRONMENT](../guides/ENVIRONMENT.md), [TESTING](../guides/TESTING.md), [development](../guides/development.md), [query-policy](../guides/query-policy.md), [query-exceptions](../guides/query-exceptions.md).
-- 구조·ADR: [Frontend Architecture](../architecture/frontend.md), [System Overview](../architecture/overview.md), [Feature dependencies](../decisions/feature-dependencies.md), [Category boundary](../decisions/project-category-boundary.md), [Category-only](../decisions/project-category-only-classification.md), [결정 기록 규칙](../decisions/DECISIONS.md).
-- 유사 완료 계획: [PLAN-0009](PLAN-0009-journal-integration.md)의 Journal DTO/초안/오류·세션·모달, [PLAN-0019](PLAN-0019-project-detail-workbench-density.md)의 상세 Page·Journal 재사용 영향, [PLAN-0022](PLAN-0022-project-query-cache.md)의 QueryManager, [PLAN-0023](PLAN-0023-widget-dashboard-api-refactoring.md)의 API 계약·Mock/real 검증 분리, [PLAN-0024](PLAN-0024-dashboard-widget-interactions.md)의 기존 Store 조합·실제 조작 검증을 참고한다. 파일 업로드·Rich Text Editor의 완료 선례는 현재 소스·패키지·Plan 조사에서 확인되지 않았다.
-- 과거 Plan의 v1/scope API나 당시 UI 보존 조건은 역사적 기록이다. 이번에 명시적으로 요청된 상세 Page 전환을 막는 조건으로 해석하지 않고 현재 코드의 v2/category를 기준으로 한다. 완료 계획의 상태와 과거 기록은 변경하지 않는다.
-- Backend 대조 근거: 인접 checkout의 `../backend/docs/plans/PLAN-0015-document-editor-phase-one.md`를 읽기 전용으로 확인했다. 상태는 `proposed`이며 UUID 문자열·v2 API·cursor 응답을 제안한다. 이번 Mock 기준에 그 방향을 반영하되 Backend Plan 승인·실제 API 가용성을 전제하지 않는다. Backend 문서는 수정하지 않는다.
+- [Frontend Requirements](../requirements/DOCUMENT_EDITOR_FRONTEND_REQUIREMENTS.md), [Common Domain & API Contract](../requirements/DOCUMENT_EDITOR_COMMON_CONTRACT.md), [계획 지침](PLANS.md), [런타임 템플릿](PLAN-TEMPLATE-RUNTIME.md)을 따른다. 루트·docs·src 및 각 영역 지침과 기존 구조·검증·환경·조회 정책을 적용한다.
+- 2026-09-23 로컬 [Swagger](http://127.0.0.1:8080/swagger-ui/index.html)와 [OpenAPI](http://127.0.0.1:8080/v3/api-docs)의 200 응답, Document 6개·Attachment 3개 operation과 schema를 확인했다. 이는 명세 가용성 확인이며 인증된 CRUD·업로드 성공 증거가 아니다.
+- 이전의 Backend proposed 상태를 현재 상태로 인용하지 않는다. 이번 확인에서 인접 backend checkout 경로는 존재하지 않았으므로 Backend 소스·계획 상태는 재확인하지 않았다. 실행 시 실제 checkout 및 저장소를 사용하는 disposable 검증 환경을 확인한다.
+- 최신 live 명세에서 필수 `attachments` 상세 응답, 본문 기본 1MiB·전체 JSON 요청 1,114,112바이트·깊이 100, 파일 기본 10MiB·multipart 11MiB와 설정 변수를 확인했다. filename 255 UTF-16 units는 Frontend Requirements의 기준이며 현재 Swagger에서는 확인되지 않아 Backend 설정·실제 경계 검증으로 확인한다. 명세 확인을 실제 통합 성공으로 기록하지 않는다.
+- [PLAN-0009](PLAN-0009-journal-integration.md)의 Journal CRUD, [PLAN-0019](PLAN-0019-project-detail-workbench-density.md)의 상세 구성, [PLAN-0022](PLAN-0022-project-query-cache.md)의 QueryManager, [PLAN-0023](PLAN-0023-widget-dashboard-api-refactoring.md)·[PLAN-0024](PLAN-0024-dashboard-widget-interactions.md)의 기존 실제 검증 기반을 재사용한다. 과거 v1/scope 설명과 테스트 생략 승인은 이번 실행 기준으로 확대하지 않는다.
 
 ### 2. 현재 코드베이스 분석
 
@@ -68,24 +64,24 @@ Journals 목록에서 Journal Viewer Page로 이동하고, Journal별 Document �
 | 명령               | `npm run build`는 prebuild `check:queries` 후 `tsc -b && vite build`. 별도 typecheck/lint script 및 ESLint/Biome 설정은 없다. `npm test`, `check:boundaries`, `check:queries`, `check:docs`, `format:check`가 있다.                                                                                                                                      |
 | Base URL/Proxy     | [vite.config](../../vite.config.ts)의 server-only `BACKEND_UPSTREAM`, 기본 `http://127.0.0.1:8080`, 브라우저는 상대 경로. `/api`·`/oauth2` proxy와 [nginx.conf](../../nginx.conf)의 SPA fallback을 사용한다. MinIO 설정·자격정보는 Frontend에 추가하지 않는다.                                                                                           |
 
-### 3. 충돌·미확정 계약과 결정 경계
+### 3. 확정 계약과 미해결 연동 조건
 
-UUID 문자열·v2 경로·cursor 목록은 이번에 정한 Mock 기준이다. 이를 승인·구현된 실제 Backend 계약으로 표현하지 않는다. S1에서는 나머지 검증용 가정과 integration gate를 기록하고, 실제 API 연결 전 Backend 담당과 공용 계약/OpenAPI를 대조한다. 미확정 사항은 독립적인 Mock UI 검증과 구분해 추적한다.
+| 항목                      | 적용 기준                                                                                                                                                                                                |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Journal Detail            | 기존 v2 상세 API와 ApiJournal 필드를 사용한다. Journal DTO에 documentSpaceId를 필수로 추가하지 않는다.                                                                                                   |
+| ID/경로                   | 모든 wire ID는 UUID 문자열, Frontend는 opaque string. 6절의 실제 v2 경로 사용.                                                                                                                           |
+| 목록                      | limit 기본 20, 1–100; cursor는 opaque/null. createdAt/id 내림차순. 검색·상태 필터 없음. 한 응답의 total/page는 같은 snapshot이지만 여러 페이지는 단일 snapshot이 아님.                                   |
+| 저장                      | title/content/attachmentIds 필수 전체 교체. 빈 제목·빈 JSON 배열 허용, attachmentIds=[]는 전부 detach.                                                                                                   |
+| 게시                      | PUBLISHED도 PUT 가능. 반복 publish는 최초 publishedAt을 유지하며 재변경하지 않음. 저장된 수정은 별도 비공개 초안이 아니므로 재게시 전까지 숨겨진다고 안내하지 않음.                                      |
+| 재시도                    | 생성·업로드에는 replay/idempotency 보장 없음. timeout 후 자동 POST 재시도 금지. pending 중복 차단만으로 응답 유실 중복을 방지했다고 주장하지 않음.                                                       |
+| 동시 수정                 | PUT에 revision/ETag 없음. 한 session/document의 queue만 직렬화하며 다른 탭·클라이언트의 lost update 방지 보장은 없음. Workspace revision은 충돌 방지용 편집 revision이 아님.                             |
+| Registry 복원 — 계약 확인 | DocumentSnapshot의 필수 attachments 배열로 복원. attachmentIds와 동일 snapshot·UUID 순서, 최대 100개 ATTACHED metadata이며 TEMP는 제외. 별도 metadata API/resolver는 만들지 않음. 실제 복원 검증은 대기. |
+| HTTP                      | FormData 지원을 기존 client에 추가. 인증된 binary stream은 JSON parser를 거치지 않음. redirect 전역 정책 완화 불필요.                                                                                    |
+| 조회 정책                 | 실제 QueryManager/check:queries를 사용. src/AGENTS·query-policy의 미구현 문구는 낡은 설명이며 check:queries는 직접 new Query 파일 허용 목록 검사임. 모든 fetch/alias 우회 검출을 가정하지 않음.          |
 
-| 항목                | 이번 제안 및 확인이 필요한 사항                                                                                                                                                                                                                                                                                                                                         |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Journal Detail      | 현재 코드에는 v2 direct GET이 있지만 새 Viewer에 필요한 Backend 준비가 끝났다는 증거는 아니다. 이번 Viewer는 기존 ApiJournal 필드를 사용하는 독립 Mock Detail로 먼저 검증한다. `documentSpaceId`를 기존 Journal parser 필수 필드로 추가하지 않는다.                                                                                                                     |
-| 경로/version        | Mock은 현재 Repository의 v2 Convention과 proposed Backend PLAN을 반영해 `/api/v2/journals/{journalId}/documents`, `/api/v2/documents/{documentId}`·`/publish`, `/api/v2/attachments`·content/delete를 기준으로 한다(6절). **Mock 기준 계약이며 최종 승인되거나 사용 가능한 실제 API라는 의미가 아니다.** 실제 연결 전 공용 계약·OpenAPI와 다시 대조한다.                |
-| ID 형식             | Journal 및 신규 Document/Attachment/author/DocumentSpace 식별자는 Frontend에서 opaque string으로 다룬다. Mock ID는 UUID 문자열이며 `attachmentIds`는 string 배열이다. UUID를 Number로 바꾸거나 숫자 증가·범위 비교 등 숫자 ID 로직을 만들지 않는다. 실제 Backend ID는 응답에서 받으며 Client가 임의로 지정하지 않는다.                                                  |
-| Pagination          | Journal Document Mock 목록은 `limit`·`cursor` query와 `{items, total, nextCursor}` 응답을 사용한다. 기존 Journal과 같은 cursor 방식으로 더 보기·초기화·재시도를 검증한다. cursor는 opaque string/null이며 숫자 offset으로 해석하지 않는다. 세부 정렬·limit 제한은 실제 연결 전 Backend 제안·구현과 대조한다.                                                            |
-| 성공 응답·오류·제한 | PUT/Publish/Delete의 정확한 status/body, 제목·content·파일 길이/크기/MIME 제한, DRAFT 열람 권한, 생성 idempotency와 publish 재시도 의미가 미정이다. Mock 시나리오의 임시 성공값·오류 코드를 서비스의 검증용 가정으로 기록한다. 실제 계약에 가짜 필드·revision·author 정보 등을 추가하지 않는다.                                                                         |
-| 게시 후 수정        | PUBLISHED 재편집·재저장, publishedAt 갱신, 빈 제목의 게시 가능 여부가 미정이다. 공용 계약 39절의 게시 이후 첨부 제거·Save 시나리오도 이 결정과 연결된다. S1에서 Mock 검증 정책을 명시하고 해당 순서를 검증하거나 실제 정책 미정에 따른 제한을 기록한다. DRAFT에서의 제거만으로 게시 후 수정까지 검증했다고 주장하지 않는다. Unpublish나 임의 상태 전이를 만들지 않는다. |
-| 동시 수정           | Document PUT에는 revision/ETag가 정의되지 않았다. 한 세션의 동일 Document 저장 직렬화는 구현하지만 다른 탭/클라이언트의 lost update 방지까지 보장하지 않는다. 서버 동시성 계약은 실제 전환 전 확인한다. History/Revision 제품 기능은 제외한다.                                                                                                                          |
-| Registry 복원       | Detail의 attachmentIds만으로는 attachmentId/originalFilename/contentType/contentUrl을 모두 복원할 수 없다. Mock은 임시 metadata resolver를 사용한다. 실제 연결 전 **Document Detail의 metadata 제공, 별도 metadata 조회 API, 또는 Backend에서 승인한 다른 방식**을 확정해야 한다. Filename·확장자·URL parsing으로 metadata나 소유권을 추론하지 않는다.                  |
-| 첨부 전송           | 현재 client는 JSON 전용이다. Mock HTTP 업로드 검증에 필요한 FormData 지원은 공유 transport의 좁은 확장으로 제안한다. content streaming/redirect와 인증 오류 전달은 별도 확인 사항이며 `redirect:'error'`를 전역 해제하지 않는다.                                                                                                                                        |
-| 지침 시점           | src/AGENTS·query-policy 서두의 PLAN-0022 미구현 설명과 실제 QueryManager/check:queries 구현이 다르다. 현재 코드를 따른다. 실제 check:queries는 직접 `new Query` allowlist 검사이며 모든 fetch/alias 우회를 자동 검출한다고 가정하지 않는다.                                                                                                                             |
+Registry 제공 방식은 상세 응답 확장으로 확정됐다. 남은 완료 gate는 실제 upload → save → reload → attachments 복원 → 재편집 검증이다. metadata 누락·불일치 또는 서버 INTERNAL_ERROR 시 본문을 유지하고 저장을 막아 attachmentIds 유실을 방지한다. [Backend 보완 요청](../requirements/document-editor-backend-followup.md)은 요청 당시 기록이며, 그 문서와 요구사항·공용 계약에 남은 ‘제공 방식 미확정’ 설명은 이 계획의 최신 명세 확인으로 대체한다. 구현 문서 정리 시 관련 DTO 예시와 상태도 동기화한다.
 
-기존 app/pages 조합으로 feature 간 직접 의존을 피할 수 있으므로 새 cross-feature import 예외나 전역 상태 구조 ADR은 기본안에 필요하지 않다. BlockNote UI binding처럼 장기 유지에 영향을 주는 선택은 [결정 기록 규칙](../decisions/DECISIONS.md)에 따라 근거와 영향을 기록하고 계획 실행 승인 범위에서 진행한다. transport redirect 전역 정책 변경은 기본안에 없으며 필요하면 계약과 범위를 먼저 재검토한다. 기존 승인 ADR을 고쳐 새 결정을 기정사실화하지 않는다.
+기존 app/pages 조합으로 feature 직접 의존을 피한다. BlockNote UI binding처럼 장기 유지에 영향을 주는 선택은 기존 결정 기록 규칙에 따라 실행 승인 범위에서 기록한다.
 
 ### 4. 목표 화면과 Navigation
 
@@ -106,7 +102,7 @@ UUID 문자열·v2 경로·cursor 목록은 이번에 정한 Mock 기준이다. 
 - Journal이 없으면 선택기를 빈 상태로 표시하고 기존 **일지 작성**으로 연결한다. 빈 Journal을 자동 생성하거나 필요한 기존 필드를 임의 채우지 않는다. 현재 ApiJournalEditor의 onSaved는 ID를 반환하지 않으므로 기본안은 생성 후 갱신된 선택기에서 Journal을 명시적으로 다시 선택하는 흐름이다. 생성 성공만으로 Document를 자동 생성하지 않는다.
 - Journal Viewer에서는 기본정보와 Document 목록을 독립 영역으로 표시한다. 상세 실패/접근 불가 상태에서 임의 Journal로 생성하지 않는다. 목록 실패는 Journal 기본정보를 지우지 않으며 retry를 제공한다.
 - 기본정보는 기존 title, entryDate, projectName, body를 중심으로 하고 필요한 경우 audit timestamp를 표시한다. 가상의 cover/owner/permission 같은 API 필드를 만들지 않는다.
-- Create pending 중 중복 클릭을 막고 실패 시 선택 context를 유지한다. 결과가 불확실하면 목록 재조회·확인 경로를 제공하고 idempotency 미확정 상태에서 자동 POST 재시도를 하지 않는다.
+- Create pending 중 중복 클릭을 막고 실패 시 선택 context를 유지한다. 결과가 불확실하면 목록 재조회·확인 경로를 제공하고 생성 idempotency 보장이 없으므로 자동 POST 재시도를 하지 않는다.
 - 새 Route는 PrivateWorkspace 및 safeReturnTo에 추가하고 공유 routes.ts/readLocation 또는 인증 shell의 경로 metadata를 확장해 AuthenticatedLayout의 선택 메뉴·페이지 제목·focus/scroll을 맞춘다. 공유 변경의 legacy 회귀도 검증한다. 대소문자·malformed encoding·추가 segment·직접 URL·새로고침·로그인 복귀를 기존 경로 보안 규칙으로 검증한다.
 - 목록 복귀는 기존 query/filter를 보존한 안전한 내부 navigation context를 사용한다. Document DTO에 journalId/ownerType/ownerId를 추가하지 않는다. context 없는 Document deep link도 직접 조회할 수 있고, 복귀 fallback은 `/journals`다.
 - dirty/saving/error·pending upload는 기존 [useUnsavedChanges](../../src/shared/hooks/useUnsavedChanges.ts), [navigationGuard](../../src/shared/lib/navigationGuard.ts)와 AuthApp의 동기 navigation guard에 연결한다. 이탈 취소 시 입력·요청을 유지하고, 명시적 폐기 후 이탈 시 타이머·구독·업로드를 정리한다. 서버가 이미 받은 요청의 취소를 rollback 성공으로 표시하지 않는다. unload 시 비동기 저장 완료나 beacon 저장을 보장하지 않는다.
@@ -122,54 +118,44 @@ UUID 문자열·v2 경로·cursor 목록은 이번에 정한 Mock 기준이다. 
 | `src/features/journal`        | Journal 기본정보·선택·Journal Document collection service와 목록 DTO/표현. 기존 Journal CRUD 보존                                                   |
 | 신규 `src/features/documents` | 도메인 독립 Document DTO/service/store, BlockNote Editor/Viewer, title draft, Autosave/Publish, Attachment service/registry/업로드 상태             |
 | `src/shared/http`             | 기존 인증·취소·오류 경계를 유지한 필요한 FormData 전송. 도메인별 endpoint/업무 무효화는 넣지 않음                                                   |
-| 개발·테스트 전용 Mock 모듈    | context collection, Document, Attachment와 실패/지연 시나리오를 API/Service 뒤에서 제공. 운영 컴포넌트 안에 fixture나 조건 분기를 넣지 않음         |
+| 실제 연동 검증                | 기존 disposable real harness에서 실제 API·파일 저장소 검증. 개발용 Mock 서버·운영 fallback은 만들지 않음                                            |
 
 Document는 공용 **feature**이며 도메인 개념을 shared로 밀어 넣지 않는다. Documents가 JournalStore를 import하거나 journalId를 Editor 필수 prop으로 요구하지 않는다. Journal도 Documents의 내부 Store/Editor를 import하지 않고 pages/app이 callback과 데이터로 연결한다. Journal 목록 summary DTO와 Document detail DTO는 용도가 다르며 full detail 모델을 억지로 공유하지 않는다. 생성 service는 반환 id를 navigation에 전달하고 Editor는 그 id로 상세를 확인한다.
 
-- 서비스 책임: `journalApi.getDetail`, `journalDocumentApi.getDocuments/createDocument`, `documentApi.getDocument/updateDocument/publishDocument/deleteDocument`, `attachmentApi.upload/delete`와 registry 복원용 metadata resolver port. 마지막 port는 Frontend 내부 인터페이스이며 새 Public API가 아니다. content 로딩은 안정 Application URL과 서비스 경계로 처리한다. 이 이름은 책임 설명이며 기존 명명 규칙에 맞춰 조정 가능하다.
-- 신규 조회는 작업실의 QueryManager를 주입받아 journal-detail, journal-document-list(journalId/limit/필터·정렬 조건과 cursor chain), document-detail(documentId)의 안정된 키·contract·정책을 선언한다. 개별 페이지 요청에는 해당 cursor를 포함하고 Journal/조회 조건이 바뀌면 cursor chain을 초기화한다. Mock/real별 별도 UI 캐시를 만들지 않는다.
+- 서비스 책임: `journalApi.getDetail`, `journalDocumentApi.getDocuments/createDocument`, `documentApi.getDocument/updateDocument/publishDocument/deleteDocument`, `attachmentApi.upload/delete`. Document 상세 parser가 attachments를 검증하고 문서 controller가 Registry에 병합한다. 별도 metadata resolver port/API를 만들지 않는다. content 로딩은 안정 Application URL과 서비스 경계로 처리한다. 이 이름은 책임 설명이며 기존 명명 규칙에 맞춰 조정 가능하다.
+- 신규 조회는 작업실의 QueryManager를 주입받아 journal-detail, journal-document-list(journalId/limit와 고정 정렬의 cursor chain), document-detail(documentId)의 안정된 키·contract·정책을 선언한다. 개별 페이지 요청에는 해당 cursor를 포함하고 Journal/조회 조건이 바뀌면 cursor chain을 초기화한다. 화면별 별도 UI 캐시를 만들지 않는다.
 - 초기 신규 조회 정책 제안은 `freshForMs: 0`, 미사용 GC 60초, focus 자동 재검증 off다. 페이지 진입/명시적 새로고침과 mutation invalidation으로 다시 확인한다. 이는 이 기능의 제안이며 Project 30초/5분 TTL을 복사한 값이 아니다.
 - Title/content/registry·저장 중 snapshot·dirty generation은 documentId별 controller가 소유한다. 동일 세션에서 하나의 Document에 하나의 save queue만 두고, unmount 후 새 controller가 이전 in-flight 요청과 경쟁하지 않게 이전 요청의 종료/불확실 상태를 관리한다.
 - create/delete는 해당 Journal 목록, save/publish는 document detail·열려 있는 Journal Document 목록을 무효화한다. 상위 Journal ID를 Document 모델에 넣지 않고 collection service/app의 구독·invalidation 연결로 처리한다.
 - 기존 JournalStore의 상세는 편집을 위한 검증된 snapshot이고 신규 Viewer의 managed detail은 읽기 projection이다. app의 journals.onInvalidate 연결에서 기존 Dashboard 갱신을 유지하면서 Viewer 상세도 무효화한다. 수정 후 Viewer 재조회가 실패하면 stale/error를 표시하고 오래된 값을 최신으로 확정하지 않는다. 같은 Journal을 양쪽에서 별도로 수정 가능한 draft/cache 권위로 만들지 않는다.
-- Journal 삭제 시 해당 context 목록·열린 자식 Document의 사용 가능 상태를 다시 확인한다. Frontend가 Attachment/MinIO 삭제를 연쇄 호출하지 않는다. Mock의 cascade는 UI 검증용이며 실제 lifecycle 검증은 Backend 통합 후 수행한다.
+- Journal 삭제 시 해당 context 목록·열린 자식 Document의 사용 가능 상태를 다시 확인한다. Frontend가 Attachment/MinIO 삭제를 연쇄 호출하지 않는다. 실제 cascade와 삭제 결과는 disposable 통합 환경에서 검증한다.
 - 세션 종료/계정 전환은 Query·draft·registry·timer·요청을 폐기한다. 동일 신원 재확인 시 title/content와 그 본문이 참조하는 성공 업로드 metadata·registry mapping을 기존 handoff 패턴으로 메모리 보존한다. 아직 PUT되지 않은 TEMP 파일은 detail.attachmentIds에 없으므로 detail만으로 복원하지 않는다. cache/queued mutation을 복구하지 않으며 미확정 save/publish/upload를 자동 replay하지 않는다. 관계 복원이 끝나기 전 save를 막고 보존된 Editor를 server snapshot으로 강제 reset하지 않는다.
 
-### 6. DTO와 임시 Mock 개발 구조
+### 6. 실제 DTO·API·전송 계약
 
-공용 계약의 도메인 의미를 유지하며 다음을 현재 Repository Convention과 proposed Backend PLAN에 맞춘 **Mock 기준 계약**으로 사용한다. Backend 구현 완료나 최종 API 승인을 의미하지 않는다.
+| 작업      | Endpoint                                       | 요청                            | 성공                         |
+| --------- | ---------------------------------------------- | ------------------------------- | ---------------------------- |
+| 생성      | POST /api/v2/journals/{journalId}/documents    | {title, content}                | 201 Document detail, DRAFT   |
+| 목록      | GET /api/v2/journals/{journalId}/documents     | limit, cursor                   | 200 {items,total,nextCursor} |
+| 상세      | GET /api/v2/documents/{documentId}             | 없음                            | 200 Document detail          |
+| 저장      | PUT /api/v2/documents/{documentId}             | {title,content,attachmentIds}   | 200 Document detail          |
+| 게시      | POST /api/v2/documents/{documentId}/publish    | 본문 없음                       | 200 Document detail          |
+| 문서 삭제 | DELETE /api/v2/documents/{documentId}          | 본문 없음                       | 200 {deletedId}              |
+| 업로드    | POST /api/v2/attachments                       | multipart documentId + file 1개 | 201 Attachment, TEMP         |
+| 첨부 내용 | GET /api/v2/attachments/{attachmentId}/content | 없음                            | 200 binary                   |
+| TEMP 삭제 | DELETE /api/v2/attachments/{attachmentId}      | 본문 없음                       | 200 {deletedId}              |
 
-- `documentId`, `attachmentId`, `authorId`, `documentSpaceId`와 대응하는 DTO `id`는 opaque string이며 Mock fixture는 UUID 문자열이다. multipart documentId도 같은 문자열을 전달한다.
-- Journal Document 목록은 `GET /api/v2/journals/{journalId}/documents?limit=...&cursor=...`를 사용하고 첫 조회는 cursor를 생략한다. 빈 목록 예시는 `{ "items": [], "total": 0, "nextCursor": null }`이다.
-
-| 작업                        | Mock 기준 Endpoint                                                                                                        |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Journal Document 생성·목록  | `POST /api/v2/journals/{journalId}/documents`, `GET /api/v2/journals/{journalId}/documents`                               |
-| Document 상세·저장·삭제     | `GET /api/v2/documents/{documentId}`, `PUT /api/v2/documents/{documentId}`, `DELETE /api/v2/documents/{documentId}`       |
-| 게시                        | `POST /api/v2/documents/{documentId}/publish`                                                                             |
-| Attachment 업로드·내용·삭제 | `POST /api/v2/attachments`, `GET /api/v2/attachments/{attachmentId}/content`, `DELETE /api/v2/attachments/{attachmentId}` |
-
-| 작업                  | 필수 의미                                                                                                                                                                                                                                        |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Journal Document 생성 | Journal context + `{title, content}`. Client가 documentSpaceId/authorId/status/audit timestamps를 보내지 않는다. 반환 Document는 DRAFT이며 id로 Editor에 이동한다.                                                                               |
-| Document detail       | `id, documentSpaceId, title, content, attachmentIds, status, authorId, createdAt, updatedAt, publishedAt`. documentSpaceId는 읽기 정보이며 UI에서 선택·변경하지 않는다.                                                                          |
-| Document update       | PUT full snapshot `{title, content, attachmentIds}`. Journal PATCH/revision 규칙을 임의로 추가하지 않는다. status/author/소유 context/audit 값은 writable 필드가 아니다.                                                                         |
-| Document 목록         | Journal context에서 `limit`·`cursor`로 요청하고 `{items, total, nextCursor}`를 받는다. items에는 summary만 있으며 전체 BlockNote content/attachmentIds는 포함하지 않는다. 마지막 cursor는 null이고, 다음 cursor는 Client가 해석·생성하지 않는다. |
-| Publish/Delete        | 게시 전 최신 PUT 완료. DELETE는 명시적 확인·pending·성공 확인 후 이동, 실패 시 화면/초안 유지. 정확한 response/status는 S1 Mock 가정과 실제 계약 확정 항목으로 분리한다.                                                                         |
-| Attachment upload     | 존재하는 documentId + binary file, multipart/form-data. 응답의 `id/documentId/originalFilename/contentType/size/status/contentUrl/createdAt`를 검증한다.                                                                                         |
-| Attachment lifecycle  | upload TEMP → 현재 content에서 사용되는 attachmentIds로 save → ATTACHED. 제외 후 save → TEMP. ATTACHED DELETE의 409/ATTACHMENT_IN_USE를 처리한다. Grace Period cleanup은 Backend 책임이다.                                                       |
-
-Mock은 **임시 가짜 서버 역할**로 한곳에 모은다. 기존 Playwright의 Node 상태 fixture를 기반으로 계약 동작을 모사하는 Adapter를 만들고, 수동 UX 검토에는 기존 Vite config의 development-only middleware로 같은 시나리오/상태 구현을 노출하는 방안을 제안한다. 공유 handler/state는 server tooling 위치에 두고 테스트와 개발 middleware가 사용한다. Docker에서 제외되는 tests 경로를 Vite config가 정적으로 import해 build를 깨뜨리지 않도록 한다. 별도 Mock 제품·새 전역 상태관리·새 테스트 runner/config는 만들지 않는다.
-
-- React UI → feature API/Service → 기존 transport → Temporary Mock API Adapter → Mock data 순서다. 실제 API Adapter로 바꿀 때 UI의 save/upload 인터페이스를 바꾸지 않도록 service가 endpoint·wire 차이를 소유한다.
-- Mock preview는 명시적 개발 mode에서만 켠다. 일반 개발/Production 실패를 감지해 Mock으로 자동 fallback하지 않는다. 새 환경변수가 꼭 필요하면 ENVIRONMENT 규칙에 따라 .env/.env.example에 함께 기록하며 backend/MinIO secret은 추가하지 않는다.
-- preview에서는 Journal 목록과 Detail의 ID를 같은 fixture dataset으로 제공하고 현재 Journal model의 필드만 사용한다. 실서버 목록 UUID와 무관한 Mock detail을 임의로 섞지 않는다. 필요한 기존 auth/CSRF·주변 조회만 기존 테스트 패턴으로 모사한다.
-- /api 및 /oauth2는 Mock preview에서 기본적으로 차단하고 명시 handler만 응답하게 해 handler 누락을 포함한 실제 8080 proxy 유출을 막는다. Browser 검증은 context.route 수준에서 popup/새 탭의 첨부 요청까지 포괄한다. 가짜 인증 성공을 실제 인증 검증으로 보고하지 않는다.
-- 확인된 Document snapshot, Attachment bytes/metadata·TEMP/ATTACHED 관계를 browser가 아닌 Mock 서버/테스트 fixture의 메모리에 둔다. 페이지 새로고침 후 같은 저장 상태를 조회할 수 있어야 한다. Mock 프로세스 재시작 시 reset되며 실제 영속성 보장은 아니다.
-- 서버가 거부한 save는 Mock 저장 상태를 바꾸지 않는다. 반면 commit 후 응답 유실은 저장 상태를 유지해 reconciliation을 검증한다. 지연, 읽기/쓰기 오류, 403/404, 업로드 실패도 재현한다. fixture 단순 즉시 성공만으로 동시성 검증을 대신하지 않는다.
-- Mock 업로드는 안정된 검증용 Application contentUrl을 반환하고 메모리 binary를 streaming한다. Object URL/임시 asset이 필요하면 렌더링 resolver 내부에서만 사용·회수하며 **저장된 editor.document의 URL을 blob/data URL로 바꾸지 않는다**. 이 방식은 새로고침 뒤에도 안정 URL로 재조회할 수 있다.
-- Mock 전용 metadata resolver는 app의 개발 조합에서 Frontend의 registry 복원 port에 주입한다. Browser의 resolver → 기존 transport → 개발 전용 `/api/v2/__document-preview/attachment-metadata` → Node metadata map이라는 명시적 전달 경로를 사용한다. documentId/attachmentIds로 소유 관계를 검증해 업로드 응답에서 이미 정의된 metadata만 반환한다. 이 경로는 **Mock 내부 통로이며 실제 Backend Endpoint 후보가 아니다**. 문서 detail에 attachments를 임의 추가하지 않고, port의 실제 구현은 Backend metadata 계약 확정 후 대체한다. 개발 resolver·주입 분기·handler는 production client graph에서 제외하고 전환 시 모두 삭제한다.
-- Mock 모듈은 production client dependency graph에 포함하지 않는다. 일반 production build 산출물에 fixture·fake credential·handler·upload asset이 없음을 검사한다. 이 단계 산출물을 실제 API 연결이 완료된 서비스로 배포하지 않는다.
+- Document detail: id, documentSpaceId, title, content, attachmentIds, **attachments**, status, authorId, createdAt, updatedAt, publishedAt. attachments는 생성·상세·저장·게시의 DocumentSnapshot 공통 필수 필드다. DRAFT의 publishedAt은 null. summary는 documentSpaceId/content/attachmentIds/**attachments**를 제외한다. PUT은 title/content/attachmentIds만 보내고 응답 전용 attachments는 보내지 않는다.
+- Attachment metadata: id, documentId, originalFilename, contentType, size, status, contentUrl, createdAt. 업로드 AttachmentSnapshot의 status는 TEMP, 상세 attachments의 AttachedSnapshot은 ATTACHED다. 소유 Document를 확인한 성공 응답만 Registry에 등록한다. ID/author/status/audit를 요청에 임의 추가하지 않는다.
+- title은 빈 문자열 허용·최대 200. content는 문자열이 아닌 JSON 배열이며 빈 배열 허용. 파싱된 content의 UTF-8 직렬화 기본 한도는 1,048,576바이트(1MiB), 전체 JSON 요청 기본 한도는 1,114,112바이트(content 한도 + 65,536)다. DOCUMENT_CONTENT_MAX_BYTES로 content 한도를 설정하며 실행 환경의 유효값을 확인한다. 중첩 깊이 최대 100 위반은 400, byte 초과는 413이다. attachmentIds는 필수 UUID 배열·중복 없이 최대 100개다. 입력 제한 초과 시 내용을 자르거나 초기화하지 않는다.
+- 업로드는 PNG/JPEG/PDF/UTF-8 TXT, 빈 파일 거부. 기본 파일 한도는 10,485,760바이트(ATTACHMENT_MAX_BYTES), multipart 전체는 11,534,336바이트(ATTACHMENT_REQUEST_MAX_BYTES)다. 본문·JSON 요청·파일·multipart 한도를 서로 구분하고 설정값을 immutable 제품 상수로 가정하지 않는다. filename 제한은 실제 환경과 대조한다. Content-Type boundary는 브라우저가 생성하며 JSON과 FormData를 동시에 보내지 않는다.
+- 기존 client의 15초 timeout은 업로드 전송 속도와 실제 저장 시간을 고려해 별도 선택 가능 여부를 검토한다. Nginx에 client_max_body_size가 명시되지 않은 현재 설정을 보완하고, multipart 여유를 포함한 전체 요청 크기와 proxy timeout을 실제 Vite/Nginx 경로에서 검증한다. MinIO secret은 Frontend에 추가하지 않는다.
+- content는 인증된 binary stream이며 PNG/JPEG는 inline, PDF/TXT는 Content-Disposition에 따른 다운로드다. range/cache 지원을 가정하지 않고 안정 상대 contentUrl을 사용한다. redirect:'error'를 전역 해제하거나 presigned URL을 본문에 저장하지 않는다.
+- 모든 변경에 기존 cookie/CSRF/Origin 규칙을 적용한다. X-Workspace-Data-Revision은 10진 문자열로 기존 freshness에 연결하며 Number나 문서 편집 revision으로 취급하지 않는다.
+- 오류는 {code,message,fieldErrors,requestId}. 400/401/403/404/409/413/415/500/503과 네트워크 실패를 구분한다. 프록시가 반환한 비 JSON 413도 안전하게 표시한다. 정확한 409 코드는 실제 응답과 대조한다.
+- 문서 DELETE 200은 DB 삭제와 파일 정리 작업 영속화이며 물리 파일 삭제는 지연될 수 있다. TEMP DELETE 200은 파일·metadata 삭제 완료다. 503 후 삭제 claim이 유지될 수 있으므로 자동 반복 삭제·재연결하지 않는다.
+- 생성·업로드 timeout은 결과 불명확으로 표시한다. 문서는 목록 재확인 후 사용자 선택으로 복구하되 제목/시간만으로 생성 성공을 확정하지 않는다. 응답 유실 TEMP를 임의 URL로 복원하지 않으며 중복 가능성을 안내하고 명시적 재업로드만 허용한다.
+- 개발용 Mock dataset/handler/metadata resolver/preview mode/fallback은 만들지 않는다. 기존 타 기능 fixtures는 보존한다. 새 기능의 API 모킹 fixture 대신 실제 disposable API와 브라우저에서의 응답 지연·차단으로 장애를 검증하고, 순수 controller 단위 테스트의 deferred Promise는 서버 대체 구현과 구분한다.
 
 ### 7. BlockNote Editor와 Read-only Viewer
 
@@ -195,20 +181,24 @@ Mock은 **임시 가짜 서버 역할**로 한곳에 모은다. 기존 Playwrigh
 6. Publish는 다른 Publish/Delete와 상호 배제한다. 클릭 시 입력·첨부 조작을 잠시 잠그고 in-flight upload/save가 끝나는 경계를 만든다. 업로드 실패/미완료 상태는 먼저 해결하도록 안내한다. 최신 generation의 title/content/attachmentIds를 flush하고 성공을 확인한 후에만 POST publish한다.
 7. flush 실패 시 publish 요청은 **0회**여야 한다. publish 실패 시 저장된 draft와 현재 입력을 유지하고 재시도를 제공한다. 성공 응답이 유실되면 detail을 조회해 상태를 확인하고 무조건 POST를 반복하지 않는다.
 8. publish 성공 후 응답 또는 확인된 detail의 PUBLISHED/publishedAt을 표시하고 Viewer로 이동한다. 로컬에서 status를 미리 확정하지 않는다. 제목/본문이 바뀐 채 이전 snapshot을 게시하는 순서 역전을 방지한다.
-9. Document 삭제는 진행 중 save/upload/publish와 조정하고 별도 확인 후 수행한다. 삭제 실패·불확실 결과는 draft를 버리지 않는다. 성공 시 context 목록을 갱신하고 안전한 복귀 경로로 이동한다.
+9. PUBLISHED 문서도 같은 PUT으로 수정하며 최초 publishedAt과 PUBLISHED 상태를 유지한다. 저장된 변경을 재게시 전 비공개 상태로 안내하지 않는다.
+10. Document 삭제는 진행 중 save/upload/publish와 조정하고 별도 확인 후 수행한다. 삭제 실패·불확실 결과는 draft를 버리지 않는다. 성공 시 context 목록을 갱신하고 안전한 복귀 경로로 이동한다.
 
 ### 9. Attachment Registry와 수명
 
 BlockNote의 `uploadFile` hook은 Attachment service를 호출해 검증된 안정 contentUrl을 반환하고, 필요하면 `resolveFileUrl`로 표시 URL만 해석한다. image picker/drop/clipboard paste와 file picker가 같은 adapter·실패 경로를 사용한다. [공식 File Panel 문서](https://www.blocknotejs.org/docs/react/components/image-toolbar).
 
 - Registry는 attachmentId/contentUrl/originalFilename/contentType과 document 소유 확인 정보를 관리한다. 업로드 성공 후 등록하고 성공/실패/pending 상태를 파일 단위로 표시한다. 숫자 progress를 얻을 수 없으면 가짜 백분율 대신 진행 중 표시를 사용한다.
+- 상세 parser는 attachmentIds와 attachments의 길이·최대 100개·UUID 순서·중복 없음·각 ID 일치·documentId 일치·ATTACHED 상태와 필수 metadata를 검증한다. 정상 무첨부는 두 배열 모두 []다. 누락/불일치와 INTERNAL_ERROR를 빈 Registry로 보정하지 않고 재조회 안내와 저장 차단으로 처리한다.
+- Registry는 서버가 확인한 ATTACHED snapshot과 같은 세션의 TEMP/Undo용 metadata를 구분한다. 저장 응답의 attachments로 전체 메모리를 교체하지 않는다. snapshot에 없는 성공 업로드 TEMP와 detach 후 Undo/Redo에 필요한 metadata는 유지하되, 이를 현재 ATTACHED라고 단정하거나 다음 attachmentIds에 자동 포함하지 않는다. 실제 본문 참조로만 다음 저장 집합을 결정한다.
+- 저장 A 중 새 첨부 B 업로드가 성공한 뒤 A 응답이 도착해도 B의 TEMP metadata와 최신 입력을 보존한다. 다음 저장은 최신 본문과 B를 포함하고 성공 응답에서 ATTACHED로 확인한다. 응답 병합은 해당 documentId/session/save generation 기준으로 수행하며 늦은 snapshot이 새로운 확인 상태를 덮지 못한다. 삭제 성공·서버에서 사용 불가로 확인된 첨부는 Undo로 자동 재연결하지 않고 오류/재업로드 경로를 제공한다.
 - save snapshot을 만들 때 실제 `editor.document`의 nested children을 포함해 Image/File 참조를 순회하고 Registry와 대조한다. 현재 사용 중인 서비스 Attachment ID를 중복 없는 집합으로 보내며, 일반 외부 링크를 서비스 첨부로 추정하지 않는다.
 - 같은 첨부를 두 block이 쓰면 한 block 제거만으로 ID를 빼지 않는다. block 삭제/URL 교체 시 마지막 참조가 사라졌을 때 활성 목록에서 제외한다. undo/redo로 참조가 돌아오면 registry 정보가 남아 있어야 한다.
 - 업로드 중 block 제거, 문서 이동, 취소, 여러 파일 중 하나 실패, 늦은 성공 응답을 검증한다. 현재 문서에 없는 파일을 자동 삽입하거나 성공한 다른 파일을 지우지 않는다. 미완료 업로드를 완료된 첨부처럼 save/publish하지 않는다.
 - ATTACHED 파일은 block 제거 후 save 성공으로 TEMP가 된 뒤에만 명시 삭제할 수 있다. 자동 hard delete로 undo를 깨지 않으며 기본 정리는 서버 grace cleanup에 맡긴다. 409 ATTACHMENT_IN_USE는 관계 재확인과 안내로 처리한다.
-- 다른 Document의 attachment URL을 paste해 현재 Document 소유 ID로 승격하지 않는다. backend가 소유권을 검증하며, mock도 잘못된 관계를 거부한다.
-- 새로고침 시 content·attachmentIds와 Mock metadata를 다시 읽어 registry를 복원한 뒤 편집을 허용한다. metadata가 부족하면 기존 IDs를 조용히 비우거나 모든 IDs를 영구 유지하는 임시 우회 대신 저장을 멈추고 복원 오류/재시도를 제공한다. 실제 복원 계약은 3절의 integration gate다.
-- MinIO URL/bucket/objectKey/presigned URL은 content에 저장하지 않는다. 실제 same-origin media 요청의 401/403·만료 redirect·content-type·download filename·proxy size 제한은 실제 연결에서 검증할 항목이다. Mock은 stable URL streaming으로 검증한다.
+- 다른 Document의 attachment URL을 paste해 현재 Document 소유 ID로 승격하지 않는다. backend가 소유권을 검증하며 실제 잘못된 관계 거부를 검증한다.
+- 새 문서 로드·새로고침에서는 동일 DocumentSnapshot의 content/attachmentIds/attachments로 Registry를 복원한 뒤 편집을 허용한다. 동일 신원 handoff 시에는 위 병합 규칙으로 미저장 TEMP metadata를 보존한다. metadata가 부족하면 기존 IDs를 조용히 비우거나 모든 IDs를 영구 유지하는 임시 우회 대신 저장을 멈추고 복원 오류/재시도를 제공한다. 별도 metadata 네트워크 조회는 필요하지 않다.
+- MinIO URL/bucket/objectKey/presigned URL은 content에 저장하지 않는다. same-origin media 요청의 401/403·content-type·download filename·proxy size 제한을 실제 API로 검증한다. PNG/JPEG는 inline, PDF/TXT는 다운로드하며 range/cache 지원을 가정하지 않는다.
 - native image/file 요청은 JSON client의 auth callback을 거치지 않으므로 load error를 파일 단위로 표시하고 기존 세션 재확인·retry 경로를 연결한다. 문서 전체를 빈 Editor로 바꾸지 않는다. resolver가 만든 Object URL은 소비자 수명 종료 시 revoke한다.
 
 ### 10. 기존 Modal 제거와 회귀 경계
@@ -227,66 +217,55 @@ BlockNote의 `uploadFile` hook은 Attachment service를 호출해 검증된 안�
 
 ### 11. 실행 Sessions
 
-Mock 기반이 준비되기 전에 새 Page가 실서버에 의존하지 않도록 API/Mock 경계를 앞에 둔다. Editor/Viewer를 먼저 만들고 Attachment Registry를 정한 뒤 Autosave/Publish를 완성해 첨부와 본문 저장의 일관성을 검증한다. 오류 상태는 마지막에 몰지 않고 각 Session의 수용 기준에 포함한다.
+#### Session 1 — 기준·계약·환경 확인
 
-#### Session 1 — 현행 근거·계약·검증 기준 확정
+- 현재 source/Router/Modal/요구사항과 live OpenAPI를 다시 확인하고 snapshot·수용 기준을 기록한다. BlockNote 호환 버전/UI binding과 기존 검사 명령을 확정한다.
+- 실제 Backend checkout, disposable DB/OIDC/파일 저장소의 실행 조건을 확인한다. 확정된 DocumentSnapshot.attachments 계약과 환경별 요청 용량을 다시 대조한다. metadata 제공 방식은 결정 완료이며 실제 권한·일관성·복원 검증은 실행 결과로 남긴다.
 
-- **Objective:** 이 계획의 코드 근거와 Mock 가정·실제 연동 gate를 확정한다.
-- **Implementation:** 기준 지침·Modal 사용처·라우팅을 재확인하고 3절 미확정 항목에 가정/담당/전환 조건을 기록한다. BlockNote 호환 버전/UI binding·필수 peer와 기존 Repository 검증 명령의 적용 범위를 확인한다. Journal/Document 생성 개념과 공용 계약 39절의 게시 후 첨부 제거를 포함한 PUBLISHED 편집 정책을 확인하고, 수용 시나리오·대표 데이터·화면 기준을 먼저 정한다.
-- **Validation:** 모든 사용자 요구에 대응되는 Session/검증이 있는지 대조한다. DocumentSpace 관리·다른 도메인·불필요한 store가 포함되지 않았는지 확인한다. 설치와 제품 코드 변경은 계획 실행 승인 이후에만 한다.
+#### Session 2 — Service·실제 API·multipart 기반
 
-#### Session 2 — Service 계약과 임시 Mock 기반
+- collection/detail/update/publish/delete/attachment service·DTO parser를 구현하고 기존 transport에 FormData를 추가한다. 실제 API만 사용하고 Mock preview는 만들지 않는다.
+- UUID/JSON 배열/읽기 전용 필드 제외/전체 교체/응답 상태/metadata를 검증한다. CSRF·401·취소·session generation·JSON 기존 회귀와 Vite/Nginx 업로드 제한을 확인한다.
+- content와 전체 JSON 요청 크기를 별도로 검증한다. 유효한 JSON에서 허용 한도 직전/정확한 한도/초과, content 자체는 허용되지만 요청 공백 등으로 전체 body 한도만 초과하는 경우, UTF-8 다중 바이트 및 depth 100 경계를 포함한다. 파일 한도와 multipart overhead를 포함한 전체 한도도 각각 검증한다. 400/413 발생 시 현재 입력·Registry 보존과 publish 0회를 확인하고, Nginx 비 JSON 413도 같은 안전한 실패 UX로 처리한다.
 
-- **Objective:** Backend 없이 정상·실패·지연·새로고침 시나리오를 재현한다.
-- **Implementation:** collection/detail/update/publish/delete와 attachment service 경계·검증용 DTO·Mock Adapter를 구성한다. 공유 HTTP에 필요한 FormData만 확장하고 기존 보안 동작을 유지한다. 기존 Journal fixtures와 Vite 개발 preview에서 같은 mock state 로직을 사용하고 real proxy 유출을 막는다.
-- **Validation:** UUID 문자열 ID와 숫자 변환 부재, v2 Mock 경로, create readonly 필드 제외, PUT 정확한 필드, `items/total/nextCursor` summary와 `limit/cursor` 요청, multipart documentId/file을 확인한다. 서버 거부 시 무변경과 commit 후 응답 유실, TEMP/ATTACHED·404/403, reload 보존, production mock 제외를 검증한다. 미정 metadata API를 실제 계약으로 추가하지 않았는지 검사한다.
+#### Session 3 — Journal Viewer와 상세 진입 전환
 
-#### Session 3 — Journal Viewer Route와 기존 상세 진입 전환
+- 실제 Journal detail을 표시하고 Router·safeReturnTo·shell metadata를 확장한다. 목록/Project/Home 읽기 Modal을 함께 제거하고 navigation callback으로 연결한다.
+- 직접 URL/reload/back-forward/login returnTo/잘못된 경로/필터 복귀/focus/상세 오류를 검증한다. 기존 Journal 생성·수정·삭제 확인 Modal은 유지한다.
 
-- **Objective:** 모든 인증 Journal 읽기 진입이 Page로 이동한다.
-- **Implementation:** 실제 Router·safeReturnTo·shell navigation에 Journal detail을 추가하고 Mock Journal 기본정보/body를 렌더링한다. 목록·최근 Journal·Home 위젯 callback을 변경한다. 상세 loading/error/not-found·목록 복귀·focus를 구현하고 대체된 Modal은 같은 전환에서 제거한다.
-- **Validation:** Journal list/Project/Home click, 직접 URL/reload/back-forward/login returnTo, malformed path, 필터 보존, detail error/retry를 확인한다. 기존 생성·수정·삭제 확인 Modal과 unrelated routes가 유지되어야 한다.
+#### Session 4 — Journal Documents 목록·새 글 작성
 
-#### Session 4 — Journal Documents 목록과 새 글 작성
-
-- **Objective:** Journal Context에서만 Document 생성·선택이 가능하다.
-- **Implementation:** Viewer에 summary 목록·cursor 더 보기·빈 상태·목록 오류를 추가한다. `limit`·`cursor` 요청과 `nextCursor` 종료 조건을 사용한다. /journals Header Action과 Viewer action에서 context 확인 → Mock create → documentId 기반 Editor route를 연결한다. context 선택 UI와 중복/실패 처리를 구성한다.
-- **Validation:** Journal A/B 목록 격리, 0건/다음 cursor/마지막 null, 조건 변경 시 cursor 초기화, 추가 조회 실패 시 기존 행 보존·재시도, context 취소·미선택·없는 Journal, create 실패/응답 유실/중복 클릭, UUID 문자열 id route를 확인한다. 빈 선택기 → 기존 일지 작성 → 생성 성공 → 명시 재선택 흐름과 작성 취소/후속 조회 실패 시 Document 자동 생성 0회를 검증한다. 전역 Document 생성/목록 또는 documentSpaceId 선택이 없어야 한다.
+- summary 목록·cursor 더 보기·빈 상태·retry와 명시 context 선택 → 실제 201 생성 → Editor route를 구현한다. pending 중복 클릭을 막는다.
+- Journal A/B 격리, limit 1/20/100·잘못된 cursor·추가 페이지 실패 보존을 검증한다. 빈 Journal 선택기에서 기존 일지 작성 후 명시 재선택을 요구한다. POST 응답 유실 시 자동 재생성 0회와 결과 확인 흐름을 검증한다.
 
 #### Session 5 — 공용 BlockNote Editor·Viewer
 
-- **Objective:** Journal 내부 구조를 모르는 동일 content 기반 편집·읽기를 제공한다.
-- **Implementation:** 승인된 BlockNote 버전·binding을 도입하고 Document feature의 TitleInput/Editor/Viewer를 조합한다. /documents/:id 및 /edit, loading·403·404·손상 JSON, scoped theme·lazy loading을 구성한다.
-- **Validation:** 모든 필수 block/formatting/slash/drag/reorder/indent/type change·한글 IME를 실제 Editor로 조작한다. Viewer의 편집 UI·mutation 0회, direct link에서 Journal context 불필요, title/content 분리, JSON round trip을 확인한다.
+- 호환 버전/binding 설치·고정, TitleInput/Editor/Viewer·lazy loading·scoped theme를 구현한다. 상세 loading/403/404/손상 JSON에서 빈 content 자동 저장을 금지한다.
+- 7절 전체 block/formatting/slash/drag/reorder/indent/type change/IME와 JSON round trip을 실제 조작한다. Viewer 편집 UI·PUT 0회, Journal context 없는 Document deep link를 확인한다.
 
-#### Session 6 — Attachment UX·Registry
+#### Session 6 — 실제 Attachment·Registry
 
-- **Objective:** 업로드부터 본문 참조·저장 관계·복원까지 일치시킨다.
-- **Implementation:** image block/drop/clipboard와 file block에 Mock upload service를 연결하고 파일별 pending/success/error·content load retry를 표시한다. active IDs, nested/duplicate/undo, 제거 후 TEMP 전환·명시 삭제를 구현한다.
-- **Validation:** 여러 첨부 중 부분 실패, 업로드 중 제거/이동, 다른 문서 첨부, 409, stable URL 보존, 새로고침 후 binary/registry 복원, 미해결 registry에서 save 차단을 확인한다. 이 Session의 save/TEMP 전환은 service·registry 수준에서 검증하고 실제 Autosave 연결은 S7에서 다시 확인한다. MinIO 직접 요청·blob URL 저장이 없어야 한다.
+- uploadFile·image drop/paste·file picker·파일별 오류, nested/중복 참조·undo, 서버 metadata 복원과 인증된 콘텐츠 표시/다운로드를 구현한다.
+- attachmentIds/attachments의 빈 배열·최대 100개·순서/소속/상태 일치와 parser의 누락·중복·불일치 거부를 단위 검증한다. 실제 저장·재조회에서 두 배열의 동일 snapshot 관계와 TEMP 제외를 확인한다. detach → save 응답 → Undo → 재저장 및 업로드 TEMP metadata 보존을 검증한다.
+- 실제 binary·허용/거부 MIME·0byte·파일/요청 용량 경계·TEMP↔ATTACHED·타 문서 첨부·409·503·삭제 중 404를 검증한다. 업로드 중 제거/이동/늦은 응답/응답 유실에서 자동 업로드 재시도 0회를 확인한다. 복원 경로 미완료 시 이 Session을 완료 처리하지 않는다.
 
 #### Session 7 — Autosave·Publish·세션 수명
 
-- **Objective:** 최신 입력을 잃지 않고 저장·게시 순서를 보장한다.
-- **Implementation:** 1.5초 debounce와 document별 직렬 queue, save state/retry/reconciliation, Publish flush barrier, 삭제와의 상호 배제, unsaved guard·handoff·dispose를 연결한다. mutation 후 detail/collection을 무효화한다.
-- **Validation:** 느린 A 중 B/C 입력 → 최신 snapshot만 후속 저장, 최대 동시 PUT 1, stale response 무시, save 실패 시 입력 유지, save 실패 후 publish 0회, publish 중 추가 입력 차단, 실패/응답 유실·같은 문서 재진입을 검증한다. click/popstate 취소·허용, beforeunload, 동일 신원 재확인, logout/account/workspace 교체를 구분한다. upload 성공 → PUT 전 재인증 → TEMP metadata 유지·자동 replay 없음과 실제 Autosave의 첨부 관계 전환도 검증한다.
+- 1.5초 debounce, 문서별 직렬 queue, retry/reconciliation, publish flush, 삭제 상호 배제, unsaved guard·handoff·dispose를 구현한다.
+- 느린 A 중 B/C → 최신 후속 snapshot, 동시 PUT 최대 1, 실패 시 입력 유지·publish 0회, 게시 응답 유실, PUBLISHED 재편집·반복 게시 최초 게시일 보존을 검증한다. 미저장 TEMP metadata handoff·계정 전환·지연 응답 차단, 같은 문서 재진입을 확인한다. 다중 탭 충돌 방지 보장은 명시적으로 제외한다.
+- 저장 A 응답 지연 → 첨부 B 업로드 성공/본문 삽입 → A 응답 도착 → B를 포함한 다음 PUT → B의 ATTACHED 확인을 필수 회귀로 추가한다. A 응답이 최신 입력·TEMP metadata·Undo 기록을 지우지 않고 새로고침 후에도 B가 복원되어야 한다.
 
-#### Session 8 — 통합 UX·Modal 정리 확인·전환 준비
+#### Session 8 — 통합·실제 Vite/Nginx·완료
 
-- **Objective:** 두 전체 사용자 흐름과 모든 실패 상태를 확인하고 Mock 종료 조건을 문서화한다.
-- **Implementation:** 남은 사용처/import/style를 점검하고 기존 Journal CRUD·Project/Home 회귀, desktop/mobile·keyboard·시각 확인을 완료한다. Mock 파일/handler/fixture/upload/error/scenario/config/branch의 삭제 목록과 실제 adapter 교체 지점을 기록한다.
-- **Validation:** 아래 Static/Runtime 행렬을 모두 수행한다. 실제 Backend 완료로 표현하지 않고 Mock 검증 결과·한계를 기록한다. 미해결 필수 기능이나 기존 검증 실패가 남으면 completed로 변경하지 않는다. 실제 연결 작업은 이 Session에서 시작하지 않는다.
+- 기존 tests/real 진입점을 확장해 disposable workspace·파일 저장소에서 전체 읽기/작성/첨부/게시/삭제 흐름을 검증한다. 실제 환경의 실행 옵션·초기화·정리·증거 경로를 기록하며 존재하지 않는 runner flag를 가정하지 않는다.
+- 기존 Journal CRUD·Project/Home/auth 회귀, 직접 URL/로그인 복귀, desktop/mobile/keyboard/시각 검토를 완료한다. 과거 Project E2E 3건 실패 등 기존 baseline을 구분하고 현재 변경으로 발생한 실패는 해결한다.
+- 새 개발 Mock/fixture/fallback·secret이 source 및 production artifact에 없음을 확인한다. gate·필수 검증 미완료 시 proposed/active의 실제 상태를 유지하며 completed로 표시하지 않는다.
 
-### 12. 실제 Backend 연결 시 Mock 전체 제거 — 후속 작업의 필수 절차
+### 12. 계약 확인과 실제 검증의 완료 경계
 
-이번 계획의 실행 범위는 이 절차를 **구체적으로 기록하고 제거 가능성을 검증하는 것**이다. Backend 준비와 별도 실행 승인 후 실제 연결을 수행한다. Mock 유지 상태와 실제 서비스 상태를 영구적인 runtime 선택지로 만들지 않는다.
+Registry metadata는 별도 API 신설 없이 DocumentSnapshot.attachments로 제공되는 계약을 확인했다. 따라서 Backend 제공 방식 결정 gate는 해소됐으며, 실제 업로드·저장·새로고침·권한·메모리 병합 검증 gate는 남아 있다. [보완 요청](../requirements/document-editor-backend-followup.md)의 요청 이력과 구분하고 완료 시 공용 계약·요구사항·계획 목록의 미확정 표현과 DTO 예시도 최신 계약으로 동기화한다.
 
-1. 공용 계약·실제 OpenAPI·Backend convention에서 경로/version, ID, wrapper, status/error, 권한, PUBLISHED 수정, idempotency/불확실 결과, registry 복원 metadata, streaming/redirect·용량 제한을 확인한다. 미정 사항을 임의 완성한 DTO로 배포하지 않는다.
-2. 동일 feature service interface 뒤에 실제 API Adapter를 연결한다. 임시 endpoint mapping/metadata resolver를 확정 계약으로 교체하고 existing HTTP의 cookie/CSRF/generation/취소를 유지한다.
-3. 이 계획에서 추가한 Mock dataset, handler/adapter, upload/binary asset/Object URL용 mock resolver, Mock Metadata Resolver·개발 전용 metadata 경로·metadata DB, 오류 응답·지연 주입, seed/reset, Vite preview mode/config hook, mock 전용 환경설정·분기·의존성·스크립트를 전부 삭제한다. 운영 UI뿐 아니라 이 기능의 테스트 전용 Mock도 남기지 않는다.
-4. Mock 전용 browser tests/fixtures는 기존 disposable real harness를 이용한 실제 API acceptance로 바꾸거나 제거한다. 다른 기능의 기존 테스트 fixture는 별도 범위이며, 새 Document Mock을 그 안에 이름만 바꿔 남기지 않는다.
-5. 코드/import graph·build artifact·환경 예시·문서·테스트 실행 경로를 검색해 잔여 Mock 및 fallback이 0인지 확인한다. 실제 adapter 연결 후 Mock 제거를 먼 후속 TODO로 미루지 않는다.
-6. 실제 Journal/Document 생성·PUT·publish·삭제, 첨부 upload/content/delete·관계 복원, auth/CSRF·접근권한·Nginx/proxy를 Vite 및 기존 real harness로 검증한다. MinIO/cleanup/cascade의 내부 수행은 Backend와 통합 증거로 확인한다. 이 검증 전에는 Production 출시 완료를 선언하지 않는다.
+생성·업로드 idempotency와 문서 revision/ETag 신설은 이번 Frontend 완료의 필수 Backend 요청이 아니다. 현재 보장 범위에 맞는 순차 처리·명시적 복구·한계를 유지한다. Production 배포와 Backend 구현 변경은 별도 범위다.
 
 ## Validation
 
@@ -302,55 +281,61 @@ Mock 기반이 준비되기 전에 새 Page가 실서버에 의존하지 않도�
 - 포맷: `npm run format:check`와 변경 파일 개별 검사. 기존 repository 포맷 실패는 신규 실패와 분리하여 기록하고, 이번 변경 파일은 반드시 통과시킨다.
 - Unit: `npm test` 및 Document controller/registry/DTO/route/auth의 가까운 기존 suite. snapshots·fake timer·deferred Promise로 저장 직렬화/세대/실패/flush를 검증하며 단순 구현 복제 테스트를 늘리지 않는다.
 - Attachment transport를 확장하면 JSON 회귀, FormData boundary 자동 처리, CSRF·timeout·abort·401·계정 전환을 단위 검증한다.
-- `node tools/check-auth-artifact.mjs`와 추가 Mock marker/import 검토로 legacy 데이터·Mock fixture가 production 산출물에 포함되지 않는지 확인한다. 실제 Backend adapter 완성 여부와 bundle에서 Mock 제외 여부는 별개로 기록한다.
+- `node tools/check-auth-artifact.mjs`와 신규 Mock/fallback import 검토로 legacy 데이터·개발 fixture가 production 산출물에 포함되지 않는지 확인한다. 실제 API adapter와 업로드 proxy까지 검증한다.
 
 ### Runtime
 
 기존 `playwright.journals.config.ts`와 `tests/journals`를 확장하여 Document의 인증된 shell 흐름까지 검증한다. 실행은 `npx --no-install playwright test --config playwright.journals.config.ts`를 사용한다. 4180 preview 서버를 재사용할 때는 기존 `JOURNAL_REUSE_SERVER=1` 규칙을 따른다. 새 기능 전용 config/runner를 만들지 않는다. 변경된 Home·auth·Project 진입은 기존 Dashboard/auth/관련 suite를 선택해 추가 실행한다.
 
-| 검증 영역             | 합격 기준                                                                                                                                                                                                                                    |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 전체 읽기 흐름        | Journals → Journal Viewer → 해당 Journal Document 목록 → 공용 Document Viewer가 이어지고 상세 dialog가 열리지 않음                                                                                                                           |
-| 전체 작성 흐름        | /journals 및 Journal Viewer의 새 글 action → 명시 context → Mock DRAFT 생성 → Editor → 작성/첨부 → Autosave → 최신 저장 후 Publish → 목록/Viewer 반영                                                                                        |
-| Journal 상태          | 목록 loading/empty/error·추가 페이지 실패, Mock Detail loading/정상/error/권한·없는 ID, Document collection empty/error/retry가 서로 구분됨                                                                                                  |
-| Route·인증            | 직접 URL/reload/back-forward/로그인 returnTo, 목록 filter 복귀, malformed route, sidebar·title/focus, 동일 신원 검증·계정 교체·401/403 후 늦은 응답 차단                                                                                     |
-| Block                 | Paragraph/Heading/Bullet/Numbered/Checklist/Toggle Heading/Toggle List/Quote/Code/Table/Image/File를 삽입·저장·복원하고 nested children 구조 보존                                                                                            |
-| Formatting·조작       | Bold/Italic/Underline/Strike/Link/Text/Background Color, Slash, block 추가·삭제·drag/reorder·indent/outdent·지원 type 변경, 한글 IME와 keyboard 동작                                                                                         |
-| Autosave              | title/content 양쪽 debounce, save state 전이, 최대 동시 PUT 1, A 진행 중 최신 입력 후 B, 오래된 응답이 현재 입력을 변경하지 않음                                                                                                             |
-| Save 실패             | 현재 title/content/registry 유지, 서버 저장값 강제 rollback 없음, 명시적 retry·불확실 결과 확인, 손상 detail이 빈 content PUT으로 이어지지 않음                                                                                              |
-| Publish               | pending save/upload를 조정하고 최신 PUT 성공 뒤 POST. 최종 PUT 실패 시 POST 0회, publish 실패 시 draft 유지, 중복/응답 유실·status 재조회 처리                                                                                               |
-| Upload                | Image block·drag/drop·clipboard paste·File block, pending/success/error, 여러 파일 중 부분 실패, upload 중 제거·이동·세션 교체가 Editor 전체 장애를 만들지 않음                                                                              |
-| Registry              | nested/중복/삭제/URL 변경/undo/redo에 따른 정확한 unique attachmentIds, 타 문서 첨부 거부, 저장 후 TEMP↔ATTACHED·409 처리                                                                                                                    |
-| 새로고침·첨부         | 성공 저장한 title/BlockNote JSON/attachmentIds와 bytes/metadata 복원. stable contentUrl 유지, Mock 서버 재시작 reset과 실제 영속성을 구분                                                                                                    |
-| 첨부 오류             | 이미지/파일 content load failure·403/404·재시도 표시, metadata 복원 실패 때 ID를 조용히 제거하지 않음                                                                                                                                        |
-| Read-only             | 편집 커서/Slash/Side/Drag/Formatting 등 편집 UI 없음, 입력·paste/drop·checklist 조작으로 변경/PUT 발생 0회, 링크·복사·읽기 Toggle 정상                                                                                                       |
-| Document 오류·삭제    | loading/not found/access denied/save/publish/delete 오류별 안내와 재시도, 삭제 확인/실패 draft 보존·성공 후 복귀, Journal 삭제 뒤 열린 문서 처리                                                                                             |
-| Modal·Journal 회귀    | list/Project/Home 읽기 Modal state/trigger 제거. 기존 Journal 생성·수정·삭제 확인, 수정 성공 후 Viewer title/body 재조회, 공용 Modal focus/Escape와 isolated legacy suite 정상                                                               |
-| 시각·접근성           | desktop 1440×1000/1280×800, mobile 390×844/320px, landscape/200% zoom에서 overflow·toolbar portal·파일명·표 가로스크롤 확인. keyboard/focus/상태 aria-live·기존 대비 유지. 스크린샷을 직접 검토하며 DOM 통과만으로 시각 완료를 선언하지 않음 |
-| Mock 격리·제거 가능성 | fixture·실패 주입이 UI에 흩어지지 않음, 미처리 API의 실서버 유출 0, 한 service 경계에서 교체 가능, 전환 삭제 목록이 실제 생성 파일/분기 전체를 포함                                                                                          |
+기존 Journal suite의 API fixtures는 기존 CRUD 회귀용으로 유지한다. 신규 Document/Attachment 성공·영속성 검증은 tests/real의 실제 Backend 경로에서 수행하고 새 Document Mock 응답을 fixtures에 추가하지 않는다. 공통 브라우저 조작 helper를 재사용하되 두 검증의 증거를 구분한다.
 
-Mock 단계에서는 신규 Backend/MinIO/실제 multipart proxy 검증을 완료했다고 주장하지 않는다. 기존 real harness 실행이 필요한 공유 transport/인증 회귀는 준비된 기존 Endpoint에 한정하고, 신규 API가 없다는 이유로 Backend를 고치거나 Mock 응답을 실제 통합 증거로 사용하지 않는다.
+| 검증 영역          | 합격 기준                                                                                                                                                                                                                                    |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 전체 읽기 흐름     | Journals → Journal Viewer → 해당 Journal Document 목록 → 공용 Document Viewer가 이어지고 상세 dialog가 열리지 않음                                                                                                                           |
+| 전체 작성 흐름     | /journals 및 Journal Viewer의 새 글 action → 명시 context → 실제 DRAFT 생성 → Editor → 작성/첨부 → Autosave → 최신 저장 후 Publish → 목록/Viewer 반영                                                                                        |
+| Journal 상태       | 목록 loading/empty/error·추가 페이지 실패, 실제 Detail loading/정상/error/권한·없는 ID, Document collection empty/error/retry가 서로 구분됨                                                                                                  |
+| Route·인증         | 직접 URL/reload/back-forward/로그인 returnTo, 목록 filter 복귀, malformed route, sidebar·title/focus, 동일 신원 검증·계정 교체·401/403 후 늦은 응답 차단                                                                                     |
+| Block              | Paragraph/Heading/Bullet/Numbered/Checklist/Toggle Heading/Toggle List/Quote/Code/Table/Image/File를 삽입·저장·복원하고 nested children 구조 보존                                                                                            |
+| Formatting·조작    | Bold/Italic/Underline/Strike/Link/Text/Background Color, Slash, block 추가·삭제·drag/reorder·indent/outdent·지원 type 변경, 한글 IME와 keyboard 동작                                                                                         |
+| Autosave           | title/content 양쪽 debounce, save state 전이, 최대 동시 PUT 1, A 진행 중 최신 입력 후 B, 오래된 응답이 현재 입력을 변경하지 않음                                                                                                             |
+| Save 실패          | 현재 title/content/registry 유지, 서버 저장값 강제 rollback 없음, 명시적 retry·불확실 결과 확인, 손상 detail이 빈 content PUT으로 이어지지 않음                                                                                              |
+| Publish            | pending save/upload를 조정하고 최신 PUT 성공 뒤 POST. 최종 PUT 실패 시 POST 0회, publish 실패 시 draft 유지, 중복/응답 유실·status 재조회 처리                                                                                               |
+| Upload             | Image block·drag/drop·clipboard paste·File block, pending/success/error, 여러 파일 중 부분 실패, upload 중 제거·이동·세션 교체가 Editor 전체 장애를 만들지 않음                                                                              |
+| Registry           | nested/중복/삭제/URL 변경/undo/redo에 따른 정확한 unique attachmentIds, 타 문서 첨부 거부, 저장 후 TEMP↔ATTACHED·409 처리                                                                                                                    |
+| 새로고침·첨부      | 성공 저장한 title/BlockNote JSON/attachmentIds와 bytes/metadata 복원. stable contentUrl 유지, 실제 저장 상태와 binary/metadata 복원을 확인                                                                                                   |
+| 첨부 오류          | 이미지/파일 content load failure·403/404·재시도 표시, metadata 복원 실패 때 ID를 조용히 제거하지 않음                                                                                                                                        |
+| Read-only          | 편집 커서/Slash/Side/Drag/Formatting 등 편집 UI 없음, 입력·paste/drop·checklist 조작으로 변경/PUT 발생 0회, 링크·복사·읽기 Toggle 정상                                                                                                       |
+| Document 오류·삭제 | loading/not found/access denied/save/publish/delete 오류별 안내와 재시도, 삭제 확인/실패 draft 보존·성공 후 복귀, Journal 삭제 뒤 열린 문서 처리                                                                                             |
+| Modal·Journal 회귀 | list/Project/Home 읽기 Modal state/trigger 제거. 기존 Journal 생성·수정·삭제 확인, 수정 성공 후 Viewer title/body 재조회, 공용 Modal focus/Escape와 isolated legacy suite 정상                                                               |
+| 시각·접근성        | desktop 1440×1000/1280×800, mobile 390×844/320px, landscape/200% zoom에서 overflow·toolbar portal·파일명·표 가로스크롤 확인. keyboard/focus/상태 aria-live·기존 대비 유지. 스크린샷을 직접 검토하며 DOM 통과만으로 시각 완료를 선언하지 않음 |
+| 실제 통합·격리     | 실제 API/저장소/Vite/Nginx 흐름 성공, 검증 데이터 격리, 신규 개발 Mock·fallback·secret의 source/artifact 포함 0                                                                                                                              |
+
+기존 disposable real harness를 확장해 실제 API·파일 저장소와 Vite/fresh Nginx를 검증한다. 실행 중 port 8080 작업실에는 검증용 mutation을 보내지 않는다. 인증·파일 저장소·metadata gate의 미완료를 단위/DOM 성공으로 대신하지 않는다. Backend 소스는 이 Frontend 계획에서 수정하지 않는다.
 
 ## Completion Criteria
 
-- [ ] Journal 목록·Project 최근 목록·Home Journal 클릭이 독립 Viewer Page로 이동하고 인증 앱의 이전 읽기 상세 Modal을 제거했다.
-- [ ] Mock Journal Detail의 기존 필드·body와 Journal별 Documents loading/empty/error/목록을 정상 표시한다.
-- [ ] Journals Home 및 Viewer에서 Journal Context를 확인하고 DRAFT 생성 → 반환 documentId 기반 공용 Editor로 이동한다.
+- [x] Journal 목록·Project 최근 목록·Home Journal 클릭이 독립 Viewer Page로 이동하고 인증 앱의 이전 읽기 상세 Modal을 제거했다.
+- [x] 실제 Journal Detail의 기존 필드·body와 Journal별 Documents loading/empty/error/목록을 정상 표시한다.
+- [x] Journals Home 및 Viewer에서 Journal Context를 확인하고 DRAFT 생성 → 반환 documentId 기반 공용 Editor로 이동한다.
 - [ ] 공용 Editor/Viewer가 같은 BlockNote JSON을 사용하며 모든 필수 block/formatting/조작 및 Read-only 제한을 검증했다.
-- [ ] title/content Autosave 직렬화·저장 상태·실패 입력 보존·최신 save 후 publish를 지연/실패/응답 유실까지 검증했다.
-- [ ] Image/File 입력·Mock upload·registry·현재 attachmentIds·안정 URL·새로고침 복원·파일별 실패를 검증했다.
-- [ ] navigation guard·동일 신원 handoff·계정 종료·오래된 응답 차단 및 기존 Journal CRUD 회귀가 통과했다.
+- [x] title/content Autosave 직렬화·저장 상태·실패 입력 보존·최신 save 후 publish를 지연/실패/응답 유실까지 검증했다.
+- [x] Image/File 입력·실제 upload·registry·현재 attachmentIds·안정 URL·새로고침 복원·파일별 실패를 검증했다.
+- [x] navigation guard·동일 신원 handoff·계정 종료·오래된 응답 차단 및 기존 Journal CRUD 회귀가 통과했다.
 - [ ] Build/Type Check와 기존 Repository의 관련 unit/browser/경계·조회·문서·포맷 검증이 통과하고 UI를 직접 검토했다.
-- [ ] Mock은 API 경계 뒤의 개발·검증 전용이며 production artifact에 포함되지 않고, 실제 전환 때 모든 신규 Mock을 제거할 구체 목록을 기록했다.
-- [ ] 실제 API 미확정 사항과 Backend Integration 미완료를 명확히 기록하고 요구사항·공용 계약을 임의 변경하지 않았다.
-- [ ] 구현 결과에 맞는 문서와 README 상태를 갱신했다. 위 기준 충족 전 완료 처리하지 않으며, **현재는 proposed이고 실행 승인되지 않았다**.
+- [x] 실제 API·저장소·Vite/Nginx 통합을 검증했고 신규 개발 Mock·fallback·secret이 source/artifact에 없다.
+- [x] DocumentSnapshot.attachments의 실제 복원·권한·ID/순서/소속 검증, 저장 중 TEMP 병합과 detach 후 Undo 회귀를 통과했다. 다중 탭 충돌 방지의 제한은 유지한다.
+- [x] content·전체 JSON 요청·파일·multipart의 개별 경계와 설정값을 검증하고 오류 시 입력/Registry 보존 및 publish 차단을 확인했다.
+- [x] 구현 결과에 맞는 문서와 README 상태를 갱신했다. 위 기준 충족 전 완료 처리하지 않으며 현재는 PLAN-0026 실행에 따라 남은 검증을 후속 대기한다.
 
-### 제안 자체 재검토
+## Execution Record
 
-- 기준 두 문서·현재 코드·proposed Backend PLAN의 제안을 대조하여 Mock ID는 UUID/opaque string, API는 v2, 목록은 limit/cursor와 items/total/nextCursor 기준으로 맞췄다. 이를 최종 승인·구현된 실제 API로 표현하지 않는다.
-- Journal만 context로 연결하며 공용 Editor에 Journal FK/DocumentSpace 관리/미래 기능 구조를 넣지 않는다.
-- 기존 Journal body/CRUD와 신규 Document를 구분하고 상세 Modal 제거의 재사용 영향을 포함했다.
-- Mock Journal Detail, 명시 context 작성 action, Document Viewer/Editor, BlockNote 원본 JSON, Attachment Registry, 직렬 저장과 Publish barrier가 각 Session/Validation에 연결돼 있다.
-- Mock의 reload/실패 검증과 실제 API/스토리지 완료를 구분하고, 실제 전환 시 테스트용까지 포함한 신규 Mock 전체 제거를 명시했다.
-- 새 lint 도구·규칙·script·관련 ADR/필수 완료 조건을 추가하지 않고 기존 검증 수단만 사용한다. 필요 시 별도 Tooling 작업으로 분리한다. 첨부 metadata 복원·PUBLISHED 편집·실제 endpoint/응답의 integration gate는 유지한다.
-- 이번 수정은 PLAN과 실제로 충돌하는 관련 문서에만 한정한다. Component/Route/API Client/Mock/package 설치를 수행하지 않으며 기존 proposed 상태와 실행 순서는 유지한다.
+- 2026-09-23 ?? ?? ??: ???? PLAN-0026 ??? ??? ????. ?? active ??? ?? ? ??? ?? ??? ?? ??? ?? proposed? ????. ?? ?? ????? ??? ???? ??? ??? ??? ???.
+
+- 2026-09-23 구현: Journal Viewer·Document Editor/Viewer·직렬 자동 저장·게시·첨부·세션 수명·proxy를 구현했다. 239 unit, Journal 15, Dashboard 9, 신규 인증 경로 2건 및 disposable 실제 Vite/Nginx 통합을 통과했다. Production 배포와 Backend 변경은 수행하지 않았다.
+- 2026-09-23 검증 범위: 기본 block/서식 JSON 복원·재저장과 핵심 입력은 통과했다. 모든 toolbar/drag/reorder/indent/type 변경의 개별 조작 증거는 남아 있어 해당 완료 기준을 미체크로 유지한다. 기존 auth suite 문구/fixture 불일치 19건과 과거 계획의 외부 링크 33건 실패는 신규 변경 검사와 구분한다. 세부 근거와 한계는 [구현·검증 기록](../reviews/plan0025-document-editor/readme.md)을 따른다. 전체 gate 충족 전까지 active를 유지한다.
+
+- 2026-09-23: 사용자가 최종 보완 계획의 실행을 승인했다. active 전환 후 Session 1부터 실제 API 기반 구현·검증을 시작한다.
+
+- 2026-09-22: Mock 기반 UI/UX 계획을 proposed로 등록했다. 구현은 시작하지 않았다.
+- 2026-09-23: 사용자의 문서 수정 요청으로 실제 API 연동 계획으로 전환했다. live Swagger/OpenAPI의 9개 operation을 확인하고 확정 계약·Registry 복원 gate·multipart/proxy·실제 acceptance를 반영했다. 이는 계획 수정 승인이며 구현 활성화 승인이 아니다. Frontend 소스·패키지·Backend·업무 데이터는 변경하지 않았다.
+- 2026-09-23 최종 검토 반영: 보완된 Swagger의 필수 attachments/AttachedSnapshot을 반영하고 별도 resolver 구상을 제거했다. Registry 검증·TEMP/Undo 병합·저장 A 중 업로드 B 회귀, 전체 JSON 1,114,112바이트 및 개별 용량 경계를 추가했다. 계약 확인 완료와 실제 통합 검증 대기를 구분하며 proposed 상태를 유지한다.

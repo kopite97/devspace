@@ -14,6 +14,7 @@ test('Home logout remains reachable after long-page scroll at landscape size', a
   await page.setViewportSize({ width: 844, height: 390 });
   await page.goto('/');
   await expect(page.locator('.widget')).toHaveCount(6);
+  await page.getByRole('button', { name: '??? ??', exact: true }).click();
   await page.getByRole('button', { name: 'Log out', exact: true }).click({ timeout: 10000 });
   await expect(page.getByRole('heading', { name: 'Sign in to your workspace' })).toBeVisible();
 });

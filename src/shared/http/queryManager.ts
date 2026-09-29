@@ -22,6 +22,11 @@ export class ManagedQuery<T> extends Query<T> {
   private lastUsedAt = now();
   private consumers = 0;
   private forceNextLoad = false;
+  private evicted = false;
+
+  get isEvicted() {
+    return this.evicted;
+  }
 
   constructor(
     private readonly manager: QueryManager,
@@ -83,6 +88,7 @@ export class ManagedQuery<T> extends Query<T> {
   };
 
   load(fetcher?: QueryFetcher<T>, options: QueryLoadOptions = {}): Promise<void> {
+    this.evicted = false;
     this.lastUsedAt = now();
     const forced = options.force === true || this.forceNextLoad;
     if (!forced && this.isFresh) return Promise.resolve();
@@ -101,6 +107,7 @@ export class ManagedQuery<T> extends Query<T> {
   }
 
   invalidate = (clear = false) => {
+    this.evicted = false;
     this.lastUsedAt = now();
     this.forceNextLoad = true;
     this.definition.onRefresh?.('forced');
@@ -108,6 +115,7 @@ export class ManagedQuery<T> extends Query<T> {
   };
 
   seed = (data: T) => {
+    this.evicted = false;
     this.lastUsedAt = now();
     this.lastSuccessAt = undefined;
     this.forceNextLoad = true;
@@ -115,7 +123,8 @@ export class ManagedQuery<T> extends Query<T> {
   };
 
   evict() {
-    if (this.consumerCount || this.getSnapshot().status === 'loading') return false;
+    if (this.evicted || this.consumerCount || this.getSnapshot().status === 'loading') return false;
+    this.evicted = true;
     this.lastSuccessAt = undefined;
     this.forceNextLoad = true;
     super.invalidate(true);
@@ -168,7 +177,7 @@ export class QueryManager {
     let delay: number | undefined;
     const at = now();
     for (const query of this.entries.values()) {
-      if (query.consumerCount) continue;
+      if (query.consumerCount || query.isEvicted) continue;
       const remaining = Math.max(0, query.gcAfterMs - (at - query.lastUsed));
       delay = delay === undefined ? remaining : Math.min(delay, remaining);
     }

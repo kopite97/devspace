@@ -21,6 +21,45 @@ function setup(fetcher: typeof fetch) {
 }
 
 describe('HTTP response boundary', () => {
+  it('returns authenticated binary bytes and still treats binary-endpoint 401 as an auth error', async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response('file bytes', { headers: { 'Content-Type': 'text/plain' } }),
+      )
+      .mockResolvedValueOnce(json({ code: 'UNAUTHORIZED' }, 401));
+    const { request, onAuthError } = setup(fetcher);
+    const blob = await request<Blob>('/api/v2/attachments/id/content', {
+      response: 'blob',
+      expectedStatus: 200,
+    });
+    expect(await blob.text()).toBe('file bytes');
+    await expect(
+      request('/api/v2/attachments/id/content', { response: 'blob' }),
+    ).rejects.toMatchObject({ status: 401 });
+    expect(onAuthError).toHaveBeenCalledOnce();
+  });
+  it('sends multipart with browser boundary, session credentials and CSRF without changing JSON requests', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(json({ ok: true }, 201));
+    const lifecycle = new Lifecycle();
+    const request = createHttpClient({
+      lifecycle,
+      fetch: fetcher,
+      getCsrfToken: async () => 'csrf-value',
+    });
+    const form = new FormData();
+    form.append('documentId', 'id');
+    form.append('file', new Blob(['text']), 'note.txt');
+    await request('/api/v2/attachments', { method: 'POST', form, expectedStatus: 201 });
+    const init = fetcher.mock.calls[0][1]!;
+    expect(init.body).toBe(form);
+    expect(init.credentials).toBe('same-origin');
+    expect(new Headers(init.headers).has('Content-Type')).toBe(false);
+    expect(new Headers(init.headers).get('X-CSRF-Token')).toBe('csrf-value');
+    await expect(
+      request('/api/v2/attachments', { method: 'POST', form, json: {} }),
+    ).rejects.toMatchObject({ code: 'INVALID_BODY' });
+  });
   it('accepts only the explicit v1, v2 and v3 API versions', async () => {
     const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => json({ ok: true }));
     const { request } = setup(fetcher);

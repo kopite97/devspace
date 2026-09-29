@@ -5,6 +5,7 @@ Decision records and their current approval status. A `proposed` record awaits e
 | Status   | Decision                                                                                     |
 | -------- | -------------------------------------------------------------------------------------------- |
 | accepted | [Explicit project contracts across features](feature-dependencies.md)                        |
+| accepted | [BlockNote document editor](blocknote-document-editor.md)                                    |
 | accepted | [ProjectCategory as a separate Project relation](project-category-boundary.md)               |
 | accepted | [ProjectCategory-only authenticated classification](project-category-only-classification.md) |
 

@@ -1,6 +1,6 @@
 import { ChevronRight, Home, Menu } from 'lucide-react';
 import { Button } from '../../shared/ui/controls';
-import type { Ref } from 'react';
+import type { ReactNode, Ref } from 'react';
 export function TopbarView({
   page,
   projectId,
@@ -8,6 +8,7 @@ export function TopbarView({
   onMenu,
   menuOpen,
   menuRef,
+  accountMenu,
 }: {
   page: string;
   projectId?: string;
@@ -15,6 +16,7 @@ export function TopbarView({
   onMenu: () => void;
   menuOpen: boolean;
   menuRef: Ref<HTMLButtonElement>;
+  accountMenu?: ReactNode;
 }) {
   return (
     <header className="topbar">
@@ -43,7 +45,7 @@ export function TopbarView({
           Personal workspace
         </span>
         <span className="topbar-divider" />
-        <span className="avatar avatar-small">{avatar}</span>
+        {accountMenu ?? <span className="avatar avatar-small">{avatar}</span>}
       </div>
     </header>
   );

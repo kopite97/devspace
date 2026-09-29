@@ -53,10 +53,12 @@ export class SingleFlight<T> {
 type RequestOptions<T> = {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   json?: unknown;
+  form?: FormData;
+  timeoutMs?: number;
   headers?: HeadersInit;
   signal?: AbortSignal;
   generation?: number;
-  response?: 'json' | 'empty';
+  response?: 'json' | 'empty' | 'blob';
   expectedStatus?: number;
   parse?: (value: unknown) => T;
   onMetadata?: (metadata: ResponseMetadata) => void;
@@ -111,10 +113,13 @@ export function createHttpClient(deps: {
       else signal.addEventListener('abort', abort, { once: true });
     }
     let timedOut = false;
-    const timer = setTimeout(() => {
-      timedOut = true;
-      controller.abort();
-    }, deps.timeoutMs ?? 15000);
+    const timer = setTimeout(
+      () => {
+        timedOut = true;
+        controller.abort();
+      },
+      options.timeoutMs ?? deps.timeoutMs ?? 15000,
+    );
     const check = () => {
       deps.lifecycle.assert(generation);
       if (signals.some((signal) => signal.aborted)) throw new CancelledError();
@@ -139,6 +144,8 @@ export function createHttpClient(deps: {
     try {
       check();
       const headers = new Headers(options.headers);
+      if (options.form && (options.json !== undefined || headers.has('Content-Type')))
+        throw new HttpError(0, 'INVALID_BODY', 'Multipart requests must use a browser boundary.');
       if (headers.has('Origin') || headers.has('Cookie'))
         throw new HttpError(0, 'INVALID_HEADER', 'Browser-owned headers cannot be set.');
       if (!headers.has('Accept')) headers.set('Accept', 'application/json');
@@ -159,7 +166,8 @@ export function createHttpClient(deps: {
           credentials: 'same-origin',
           redirect: 'error',
           headers,
-          body: options.json === undefined ? undefined : JSON.stringify(options.json),
+          body:
+            options.form ?? (options.json === undefined ? undefined : JSON.stringify(options.json)),
           signal: controller.signal,
         }),
       );
@@ -222,6 +230,11 @@ export function createHttpClient(deps: {
           generation,
         });
         return undefined as T;
+      }
+      if (options.response === 'blob') {
+        const blob = await waitFor(response.blob());
+        check();
+        return blob as T;
       }
       if (!/\bapplication\/(?:[\w.-]+\+)?json\b/i.test(response.headers.get('Content-Type') ?? ''))
         throw new HttpError(response.status, 'PROTOCOL_ERROR', 'Expected a JSON response.');

@@ -38,7 +38,9 @@ test('create preserves body/date and freezes one Idempotency-Key', async ({ page
     entryDate: '2026-09-04',
   });
   await page.locator('.document-row').click();
-  await expect(page.getByRole('dialog').locator('.detail-body')).toHaveText(' leading\nbody  ');
+  await expect(page).toHaveURL(new RegExp('/journals/' + saved.id + '$'));
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.locator('.journal-viewer .detail-body')).toHaveText(' leading\nbody  ');
 });
 
 test('revision conflict keeps the draft, permits explicit reapplication, and deletes permanently', async ({

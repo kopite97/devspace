@@ -89,26 +89,29 @@ test('project detail Journal widget uses the selected server UUID and direct pro
   await expect(page.locator('.journal-surface')).toContainText('Journal 1');
 });
 
-test('Home recent Journal is read-only, newest and bounded to the approved default limit', async ({
+test('Home Journal widget opens the independent Journal viewer without a read modal', async ({
   page,
 }) => {
   await setup(page);
-  let request: URL | undefined;
-  await page.route('**/api/v2/journals?*', (route) => {
-    request = new URL(route.request().url());
-    return route.fulfill({
-      json: { items: [journal(1), journal(2), journal(3)], total: 5, nextCursor: 'ignored' },
-    });
-  });
+  await page.route('**/api/v2/journals/' + id(500), (route) =>
+    route.fulfill({
+      json: journal(300, {
+        title: 'Widget 전환 기록',
+        body: '서버 데이터 확인',
+        entryDate: '2026-09-17',
+      }),
+    }),
+  );
   await page.goto('/');
-  await expect(page.locator('.journal-surface .journal-row')).toHaveCount(3);
-  expect(request?.searchParams.get('sort')).toBe('newest');
-  expect(request?.searchParams.get('limit')).toBe('3');
-  await expect(page.locator('.journal-surface button')).toHaveCount(3);
+  await expect(page.locator('.journal-row')).toHaveCount(1);
   await page.screenshot({ path: 'test-results/journal-home-desktop.png', fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
   ).toBeTruthy();
   await page.screenshot({ path: 'test-results/journal-home-mobile.png', fullPage: true });
+  await page.locator('.journal-row').click();
+  await expect(page).toHaveURL(new RegExp('/journals/' + id(500) + '$'));
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.locator('.journal-viewer .detail-body')).toHaveText('서버 데이터 확인');
 });

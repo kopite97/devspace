@@ -1,7 +1,7 @@
 import { ChevronRight, Flag, Server } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery, type Query } from '../../shared/http/query';
-import { Button, EmptyState, Modal, Progress } from '../../shared/ui/controls';
+import { Button, EmptyState, Progress } from '../../shared/ui/controls';
 import { TaskBoard } from '../../features/tasks/TaskBoard';
 import { parseTask, taskPresentation } from '../../features/tasks/apiModel';
 import type { TaskStore } from '../../features/tasks/apiStore';
@@ -209,15 +209,24 @@ function BoardData({
   );
 }
 
-function JournalData({ data }: { data: RecordData }) {
-  const [detail, setDetail] = useState<RecordData>();
+function JournalData({
+  data,
+  onNavigate,
+}: {
+  data: RecordData;
+  onNavigate: (path: string) => void;
+}) {
   const items = records(data.items);
   if (!items.length) return <EmptyState title="개발일지가 없어요" />;
   return (
     <>
       <div className="journal-list">
         {items.map((item) => (
-          <button key={text(item.id)} className="journal-row" onClick={() => setDetail(item)}>
+          <button
+            key={text(item.id)}
+            className="journal-row"
+            onClick={() => onNavigate('/journals/' + encodeURIComponent(text(item.id)))}
+          >
             <span className="journal-date">{text(item.entryDate)}</span>
             <span>
               <strong>{text(item.title)}</strong>
@@ -227,14 +236,6 @@ function JournalData({ data }: { data: RecordData }) {
           </button>
         ))}
       </div>
-      {detail && (
-        <Modal title={text(detail.title)} onClose={() => setDetail(undefined)}>
-          <p className="detail-body">{text(detail.body)}</p>
-          <p className="journal-detail-meta">
-            {text(detail.projectName)} · {text(detail.entryDate)}
-          </p>
-        </Modal>
-      )}
     </>
   );
 }
@@ -323,7 +324,7 @@ function Payload({
         />
       );
     case 'journal':
-      return <JournalData data={data} />;
+      return <JournalData data={data} onNavigate={onNavigate} />;
     case 'milestone':
       return <MilestoneData data={data} onNavigate={onNavigate} />;
     case 'links':

@@ -1,5 +1,12 @@
 import { expect, it } from 'vitest';
 import { consumeLoginError, loginUrl, safeReturnTo } from './routeIntent';
+it('retains UUID Journal and Document deep links while rejecting malformed nested routes', () => {
+  const id = '00000000-0000-0000-0000-000000000001';
+  for (const path of [`/journals/${id}`, `/documents/${id}`, `/documents/${id}/edit`])
+    expect(safeReturnTo(path)).toBe(path);
+  for (const path of ['/documents/invalid', `/journals/${id}/edit`, `/documents/${id}/edit/extra`])
+    expect(safeReturnTo(path)).toBe('/');
+});
 it('encodes deep links and retains supported route query state', () => {
   const intent = '/projects/abc?scope=server&q=two+words&archived=true';
   expect(safeReturnTo(intent)).toBe(intent);

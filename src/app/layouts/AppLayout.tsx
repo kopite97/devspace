@@ -11,7 +11,7 @@ export function AppLayout({
   renderTopbar,
   detail,
   closeDetail = () => {},
-  sessionControls,
+  hasFooter = true,
   sessionNotice,
 }: {
   children: ReactNode;
@@ -20,7 +20,7 @@ export function AppLayout({
   renderTopbar: (menu: MobileNavigation) => ReactNode;
   detail?: { title: string; body: string } | null;
   closeDetail?: () => void;
-  sessionControls?: ReactNode;
+  hasFooter?: boolean;
   sessionNotice?: ReactNode;
 }) {
   const menu = useMobileNavigation(entryKey);
@@ -41,14 +41,15 @@ export function AppLayout({
         <main>
           {sessionNotice}
           {children}
-          <footer className="page-footer">
-            <span>
-              <Code2 size={14} />
-              Built for your next idea.
-            </span>
-            <span>devspace. · 나만의 개발 작업실</span>
-          </footer>
-          {sessionControls}
+          {hasFooter && (
+            <footer className="page-footer">
+              <span>
+                <Code2 size={14} />
+                Built for your next idea.
+              </span>
+              <span>devspace. · 나만의 개발 작업실</span>
+            </footer>
+          )}
         </main>
       </div>
       {detail && (

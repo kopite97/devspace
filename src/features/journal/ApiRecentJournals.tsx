@@ -1,9 +1,8 @@
 import type { CategoryFilter } from '../projects/categoryFilter';
 import { ChevronRight } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
-import { Button, EmptyState, Modal } from '../../shared/ui/controls';
+import { type ReactNode } from 'react';
+import { Button, EmptyState } from '../../shared/ui/controls';
 import { useQuery } from '../../shared/http/query';
-import type { ApiJournal } from './apiModel';
 import { presentation } from './apiModel';
 import type { JournalStore } from './apiStore';
 
@@ -13,12 +12,14 @@ export function ApiRecentJournals({
   projectId,
   limit = 3,
   emptyAction,
+  onOpenJournal,
 }: {
   store: JournalStore;
   category?: CategoryFilter;
   projectId?: string;
   limit?: number;
   emptyAction?: ReactNode;
+  onOpenJournal: (id: string) => void;
 }) {
   if (!Number.isInteger(limit) || limit < 1 || limit > 20)
     throw new Error('Journal widget limit must be 1–20');
@@ -32,7 +33,6 @@ export function ApiRecentJournals({
   };
   const query = store.list(filter);
   const state = useQuery(query);
-  const [detail, setDetail] = useState<ApiJournal>();
   if (state.status === 'loading' && !state.data) return <p role="status">불러오는 중…</p>;
   if (state.status === 'error' && !state.data)
     return (
@@ -76,7 +76,11 @@ export function ApiRecentJournals({
         {state.data.items.map((raw) => {
           const journal = presentation(raw);
           return (
-            <button key={journal.id} className="journal-row" onClick={() => setDetail(raw)}>
+            <button
+              key={journal.id}
+              className="journal-row"
+              onClick={() => onOpenJournal(journal.id)}
+            >
               <span className="journal-date">{journal.entryDate}</span>
               <span>
                 <strong>{journal.title}</strong>
@@ -87,14 +91,6 @@ export function ApiRecentJournals({
           );
         })}
       </div>
-      {detail && (
-        <Modal title={detail.title} onClose={() => setDetail(undefined)}>
-          <p className="detail-body">{detail.body}</p>
-          <p className="journal-detail-meta">
-            {detail.projectName} · {detail.entryDate}
-          </p>
-        </Modal>
-      )}
     </>
   );
 }

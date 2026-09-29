@@ -2,19 +2,21 @@
 
 ## 1. 문서 목적
 
-본 문서는 공용 Document Editor의 Frontend 구현 PLAN을 수립하기 위한 요구사항 및 설계 지침이다.
+2026-09-23 갱신: 사용자 제공 Backend 계약과 live Swagger/OpenAPI를 기준으로 실제 API 연동을 목표로 한다. 기존 작성 내용은 유지하며 종전 Mock 우선 단계만 실제 통합 기준으로 대체했다.
+
+본 문서는 공용 Document Editor의 Frontend 1차 요구사항 및 구현 PLAN 수립 기준을 정의한다.
 
 본 문서 자체는 구현 PLAN이 아니다.
 
-API·ID·Pagination 예시는 [공통 계약](DOCUMENT_EDITOR_COMMON_CONTRACT.md)의 Backend PLAN `proposed` 기준을 따른 Mock 검증용 제안이며, 최종 승인되거나 구현된 API를 뜻하지 않는다. JournalId·DocumentId·AttachmentId·documentSpaceId·authorId는 UUID 문자열을 기준으로 하고 Frontend에서는 숫자로 변환하지 않는 opaque string으로 다룬다.
+Document Editor의 Domain/API 계약은 `DOCUMENT_EDITOR_COMMON_CONTRACT.md`를 따른다. 공통 계약과 본 문서가 충돌하는 경우 공통 계약을 우선하며, 공통 계약의 최종 기준은 Backend `PLAN-0015`다.
 
-Frontend 작업자는 현재 코드베이스의 Router, API Client, 상태관리, 인증, UI Component 및 `journals` 화면을 먼저 분석한 뒤 본 지침을 만족하는 PLAN을 작성해야 한다.
+Frontend 작업자는 현재 코드베이스의 Router, API Client, QueryManager, 인증, 상태관리, UI Component 및 `journals` 관련 구현을 확인한 뒤 본 요구사항을 만족하는 PLAN을 작성한다.
 
 ---
 
 # 2. 핵심 구조
 
-Document 시스템은 다음 구조를 전제로 한다.
+1차 Document 기능은 다음 구조를 전제로 한다.
 
 ```text
 Journal
@@ -26,7 +28,7 @@ Document
 Attachment
 ```
 
-Cardinality:
+관계:
 
 ```text
 Journal 1 : 1 DocumentSpace
@@ -36,165 +38,480 @@ DocumentSpace 1 : N Document
 Document 1 : N Attachment
 ```
 
-`DocumentSpace`는 향후 다른 도메인이나 페이지에서도 Document 기능을 연결할 수 있도록 유지하는 범용 Document Collection이다.
+Frontend가 직접 관리하는 것은 Journal Context, Document, Attachment다.
 
-현재 1차 실제 연동 대상은 `journals`뿐이다.
+`DocumentSpace`는 Backend 내부의 범용 Document Collection 개념이며 Frontend에서 생성·선택·수정·삭제하는 UI를 제공하지 않는다.
 
 ---
 
-# 3. 현재 적용 범위
+# 3. 현재 실제 적용 범위
 
-1차 구현에서 Document Editor를 실제 서비스 화면에 연결할 대상:
+1차 실제 연동 대상은 다음 하나다.
 
-* `journals`
+```text
+journals
+```
 
-현재 다음 기능에는 연결하지 않는다.
+현재 다음 Domain에는 Document 기능을 연결하지 않는다.
 
-* Project
-* Milestone
-* Resource
+```text
+Project
+Milestone
+Resource
+```
 
-향후 필요해지는 시점에 각 도메인이 자신의 `DocumentSpace`를 소유하도록 별도 구현한다.
+향후 다른 Domain이 Document 기능을 사용할 수 있으므로 공용 Document Editor/Viewer 자체를 `journals` 전용 Component로 만들지 않는다.
 
 ---
 
 # 4. 사용자 UX 목표
 
-일반적인 textarea 기반 게시글이 아니라 Notion 스타일의 Block 기반 Document Editor를 제공한다.
+일반 textarea 또는 Markdown Editor가 아니라 BlockNote 기반의 Notion 스타일 Block Editor를 제공한다.
 
-1차 사용자 흐름:
+대표 흐름:
 
 ```text
 Journals
    ↓
 Journal 선택
    ↓
-Document 목록
+Journal Viewer
+   ↓
+Documents
+   ↓
+Document Viewer
+```
+
+작성 흐름:
+
+```text
+Journals / Journal Viewer
    ↓
 새 글 작성
    ↓
-Block Editor
+Journal Context 확인
    ↓
-자동 저장
+DRAFT Document 생성
    ↓
-DRAFT
+Document Editor
    ↓
-게시
+작성 / 첨부
    ↓
-PUBLISHED
+Autosave
+   ↓
+Publish
+   ↓
+Document Viewer
 ```
 
 ---
 
 # 5. 기준 기술
 
-* React
-* BlockNote
-* 기존 Router
-* 기존 API Client
-* 기존 인증/인가 구조
-* 기존 디자인 시스템
+- React
+- TypeScript
+- BlockNote
+- 기존 Router 구조
+- 기존 QueryManager
+- 기존 API/HTTP Client
+- 기존 인증/인가 구조
+- 기존 디자인 시스템
 
-Document 기능만을 위해 새로운 전역 상태관리 체계를 임의로 도입하지 않는다.
-
----
-
-# 6. Editor 기능
-
-## 기본 Block
-
-다음을 지원한다.
-
-* Paragraph
-* Heading
-* Bullet List
-* Numbered List
-* Checklist
-* Toggle Heading
-* Toggle List
-* Quote
-* Code Block
-* Table
-* Image
-* File
-
-사용하는 BlockNote 버전에서 제공하는 기본 기능을 우선 활용한다.
-
-## Inline Formatting
-
-* Bold
-* Italic
-* Underline
-* Strike
-* Link
-* Text Color
-* Background Color
-
-가능하면 BlockNote 기본 Formatting Toolbar를 사용한다.
-
-## Emoji
-
-현재 BlockNote 버전에서 기본 Emoji 기능이 제공되고 기존 UI와 자연스럽게 통합 가능하다면 사용한다.
-
-별도 Emoji 시스템은 구현하지 않는다.
+Document 기능만을 위해 별도의 전역 상태관리 체계를 추가하지 않는다.
 
 ---
 
-# 7. Slash Command
+# 6. Journals Home
 
-사용자는 `/` 입력으로 Block을 추가할 수 있어야 한다.
+현재 `/journals` 화면에 Document 작성 진입점을 제공한다.
+
+기존 Page/Header 구조에 맞춰 명확한 `새 글 작성` Action을 제공한다.
+
+현재 존재하는 Journal 자체의 생성 기능과 Document 작성 기능을 사용자 입장에서 구분할 수 있어야 한다.
+
+새 Document 작성 시 Journal Context가 필요하므로 `/journals`에서 직접 작성하는 경우 사용자가 대상 Journal을 명시적으로 선택하거나 확인하도록 한다.
+
+첫 번째 Journal을 자동 선택하지 않는다.
+
+Journal이 하나도 없다면 Document를 자동 생성하지 않고 기존 Journal 생성 흐름으로 안내한다.
+
+---
+
+# 7. Journal 상세 Modal → Viewer Page
+
+현재 Journal 상세 내용을 Modal로 표시하는 구조는 독립적인 Page Navigation으로 변경한다.
+
+기존:
+
+```text
+/journals
+   ↓
+Journal 클릭
+   ↓
+Detail Modal
+```
+
+목표:
+
+```text
+/journals
+   ↓
+Journal 클릭
+   ↓
+/journals/:journalId
+```
+
+Journal 상세 Page에서는 최소 다음 구조를 제공한다.
+
+```text
+Journal Viewer
+
+├─ Journal 기본 정보
+├─ 기존 Journal body
+└─ Documents
+    ├─ Document A
+    ├─ Document B
+    └─ Document C
+```
+
+기존 Journal의 `body`와 새 Document Content는 서로 다른 데이터다.
+
+기존 body를 Document로 변환하거나 동기화하지 않는다.
+
+---
+
+# 8. 기존 Journal Modal 제거
+
+Journal Viewer Page가 읽기 상세 기능을 대체하면 인증 앱의 기존 읽기용 Journal Modal은 제거한다.
+
+검토 대상:
+
+```text
+Journal 목록 Detail Modal
+Project Recent Journals Detail Modal
+Home Journal Widget Detail Modal
+```
+
+Journal 삭제 확인 Modal 등 다른 목적의 Modal은 유지한다.
+
+다른 기능에서 재사용되는 Component/Style은 사용처를 조사한 뒤 제거 여부를 결정한다.
+
+Viewer Page와 기존 읽기 Modal을 특별한 이유 없이 동시에 유지하지 않는다.
+
+---
+
+# 9. Journal Document 생성
+
+Document 생성은 반드시 Journal Context에서 수행한다.
+
+API:
+
+```http
+POST /api/v2/journals/{journalId}/documents
+```
+
+Request:
+
+```json
+{
+  "title": "",
+  "content": []
+}
+```
+
+Frontend는 다음 서버 관리 값을 전송하지 않는다.
+
+```text
+id
+documentSpaceId
+authorId
+status
+createdAt
+updatedAt
+publishedAt
+```
+
+성공 응답은 `201 Created`이며 DRAFT Document가 반환된다.
+
+반환된 `documentId`로 공용 Editor Route에 이동한다.
+
+개념:
+
+```text
+POST Journal Document
+   ↓
+201 DocumentResponse
+   ↓
+documentId
+   ↓
+/documents/:documentId/edit
+```
+
+---
+
+# 10. ID 타입
+
+다음 식별자는 모두 UUID 문자열로 취급한다.
+
+```text
+journalId
+documentSpaceId
+documentId
+attachmentId
+authorId
+createdBy
+deletedId
+```
+
+Frontend Type은 숫자가 아닌 string을 사용한다.
 
 예:
 
-```text
-/
-├─ Text
-├─ Heading
-├─ Toggle
-├─ Bullet List
-├─ Numbered List
-├─ Checklist
-├─ Quote
-├─ Code
-├─ Table
-├─ Image
-└─ File
+```ts
+type DocumentId = string;
+type AttachmentId = string;
 ```
 
-현재 Custom Slash Command는 구현하지 않는다.
+UUID를 Number로 변환하거나 숫자 증가·범위 비교·산술 연산에 사용하지 않는다.
 
-향후 다음과 같은 서비스 기능을 추가할 수 있도록 BlockNote 구조를 불필요하게 제한하지 않는다.
-
-```text
-/server
-/project
-/github-issue
-/api
-```
-
-Custom Block 기능 자체는 이번 범위에서 구현하지 않는다.
+실제 API의 UUID 문자열을 그대로 사용하며 fixture 전용 ID를 제품 데이터로 사용하지 않는다.
 
 ---
 
-# 8. Block 조작
+# 11. Journal Document 목록
+
+Journal별 목록 API:
+
+```http
+GET /api/v2/journals/{journalId}/documents
+```
+
+Query:
+
+```text
+limit
+cursor
+```
+
+`limit`:
+
+```text
+기본값: 20
+허용 범위: 1..100
+```
+
+`cursor`는 선택 사항이며 opaque string으로 취급한다.
+
+Frontend에서 cursor 내용을 분석하거나 생성하지 않는다.
+
+Response:
+
+```json
+{
+  "items": [],
+  "total": 0,
+  "nextCursor": null
+}
+```
+
+Document Summary에는 전체 `content`와 `attachmentIds`가 포함되지 않는다.
+
+목록에는 DRAFT와 PUBLISHED가 모두 포함된다.
+
+정렬은 Backend의:
+
+```text
+createdAt DESC
+id DESC
+```
+
+를 그대로 사용하며 Frontend가 임의로 재정렬하지 않는다.
+
+`nextCursor === null`이면 추가 조회를 종료한다.
+
+추가 Page 조회 실패 시 기존 목록을 제거하지 않고 현재 항목을 유지하면서 재시도를 제공한다.
+
+검색 및 Status Filter는 1차 범위에 포함하지 않는다.
+
+---
+
+# 12. Document Detail API
+
+생성 이후 Document는 `documentId` 기준 공용 API를 사용한다.
+
+```http
+GET /api/v2/documents/{documentId}
+```
+
+Document Detail:
+
+```text
+id
+documentSpaceId
+title
+content
+attachmentIds
+status
+authorId
+createdAt
+updatedAt
+publishedAt
+```
+
+`documentSpaceId`는 읽기 전용 정보다.
+
+Frontend에서 변경하거나 DocumentSpace 선택 UI에 사용하지 않는다.
+
+`publishedAt`은 항상 Response에 존재하며:
+
+```text
+DRAFT       → null
+PUBLISHED   → UTC ISO-8601
+```
+
+이다.
+
+---
+
+# 13. Document Editor Route
+
+공용 Editor Route를 제공한다.
+
+개념:
+
+```text
+/documents/:documentId/edit
+```
+
+Editor는 `journalId`를 필수 입력으로 요구하지 않는다.
+
+Journal은 Document 생성 및 목록 Context를 제공할 뿐이고, 생성 이후 Document Editor는 `documentId`만으로 동작할 수 있어야 한다.
+
+---
+
+# 14. Document Viewer Route
+
+공용 Read-only Viewer를 제공한다.
+
+개념:
+
+```text
+/documents/:documentId
+```
+
+Viewer와 Editor는 동일한 BlockNote JSON을 사용한다.
+
+Viewer에서는 다음 편집 UI를 표시하지 않는다.
+
+```text
+Slash Menu
+Formatting Toolbar
+Block Side Menu
+Drag Handle
+File Upload UI
+Editable Cursor
+```
+
+일반 텍스트 선택·복사, Link 이동, Attachment 열기, 읽기용 Toggle 동작은 유지한다.
+
+Viewer Interaction으로 PUT 또는 다른 Mutation이 발생해서는 안 된다.
+
+---
+
+# 15. BlockNote Content
+
+Document 본문의 Source of Truth:
+
+```ts
+editor.document;
+```
+
+`content`는 JSON 문자열이 아니라 JSON Array다.
+
+저장 전에 다음 Format으로 변환하지 않는다.
+
+```text
+Markdown
+HTML
+Frontend 자체 Document Schema
+```
+
+Backend에서 받은 BlockNote JSON을 그대로 초기 Content로 사용한다.
+
+JSON Object key의 순서나 공백의 byte 단위 동일성을 가정하지 않는다.
+
+Block 배열 순서와 의미상 JSON 값이 보존되는 것을 기준으로 한다.
+
+---
+
+# 16. 기본 Block 기능
+
+1차 Editor에서는 현재 사용하는 BlockNote 버전에서 지원되는 다음 기능을 제공한다.
+
+```text
+Paragraph
+Heading
+Bullet List
+Numbered List
+Checklist
+Toggle Heading
+Toggle List
+Quote
+Code Block
+Table
+Image
+File
+```
+
+BlockNote 기본 제공 기능을 우선 사용한다.
+
+기본 기능이 없는 경우 임의의 Custom Block으로 우회하지 않는다.
+
+---
+
+# 17. Formatting
+
+최소 다음 Formatting을 제공한다.
+
+```text
+Bold
+Italic
+Underline
+Strike
+Link
+Text Color
+Background Color
+```
+
+BlockNote 기본 Toolbar/Menu를 우선 사용한다.
+
+---
+
+# 18. Slash Command 및 Block UX
+
+사용자는 `/` 입력을 통해 Block을 추가할 수 있어야 한다.
 
 다음을 지원한다.
 
-* Block 추가
-* Block 삭제
-* Drag & Drop
-* Block 순서 변경
-* 들여쓰기
-* 내어쓰기
-* 지원 가능한 Block Type 변경
+```text
+Block 추가
+Block 삭제
+Drag & Drop
+Block 순서 변경
+Indent
+Outdent
+지원되는 Block Type 변경
+```
 
-BlockNote의 기본 Side Menu 및 Drag Handle을 우선 사용한다.
+현재 서비스 전용 Custom Slash Command는 추가하지 않는다.
+
+향후 `/server`, `/github-issue` 등의 기능을 추가할 수 있도록 BlockNote 구조를 불필요하게 제한하지 않는다.
 
 ---
 
-# 9. Document 제목
+# 19. 제목
 
-제목은 BlockNote Content와 분리한다.
+Document 제목은 BlockNote Content와 분리한다.
 
 ```text
 DocumentEditor
@@ -202,247 +519,131 @@ DocumentEditor
 └─ BlockNoteEditor
 ```
 
-Backend 저장 구조도 다음과 같이 분리한다.
+Title과 Content는 동일한 Autosave Snapshot에 포함한다.
+
+Backend 계약:
 
 ```text
 title
-content
+→ non-null String
+→ 0..200 UTF-16 units
+→ 빈 문자열 허용
 ```
 
-제목은 본문과 함께 자동 저장 대상이다.
+Frontend에서도 UX 목적으로 동일 제한을 안내할 수 있으나 Backend Validation이 최종 기준이다.
 
 ---
 
-# 10. Document Content
+# 20. Content 제한
 
-Document 본문의 Source of Truth는 BlockNote Document JSON이다.
-
-```ts
-editor.document
-```
-
-Frontend는 저장 전 이를 Markdown, HTML 또는 별도의 자체 Document 구조로 변환하지 않는다.
-
-Backend에서 조회한 `content`는 BlockNote 초기 Content로 복원한다.
-
----
-
-# 11. Journal과 Document
-
-Frontend는 Journal Context에서 Document를 생성하고 목록을 조회한다.
-
-개념:
-
-```text
-Journal {journalId}
-   ↓
-DocumentSpace
-   ↓
-Documents
-```
-
-Frontend가 직접 `documentSpaceId`를 선택하거나 변경하지 않는다.
-
-Journal 관련 Backend API가 해당 Journal의 DocumentSpace를 Resolve한다.
-
----
-
-# 12. Document 생성
-
-Document 생성은 Journal Context에서 수행한다.
-
-예:
-
-```text
-Journal 상세
-   ↓
-새 글 작성
-   ↓
-POST Journal Document API
-   ↓
-DRAFT Document 생성
-   ↓
-documentId 반환
-   ↓
-공용 Editor 진입
-```
-
-생성된 이후 Editor는 Journal 내부 구조나 DocumentSpace를 직접 다룰 필요가 없다.
-
----
-
-# 13. Document 목록
-
-1차 구현에서는 모든 Document를 전역적으로 조회하지 않는다.
-
-Journal 단위로 Document 목록을 조회한다.
-
-예:
-
-```text
-Journal {journalId}
-→ 해당 Journal의 Document 목록
-```
-
-Frontend는 전역 `GET /api/v2/documents` 목록에 의존하지 않는다.
-
-Journal별 Document 목록 API 기준은 `GET /api/v2/journals/{journalId}/documents?limit=20`이며 다음 페이지는 서버가 반환한 opaque `nextCursor`를 `cursor`로 전달한다. 응답은 `{items, total, nextCursor}`를 사용하고 첫 요청에서는 cursor를 생략한다.
-
----
-
-# 14. DocumentSpace
-
-`DocumentSpace`는 Frontend 사용자가 직접 관리하는 기능이 아니다.
-
-Frontend에서는 다음 기능을 제공하지 않는다.
-
-* DocumentSpace 생성
-* DocumentSpace 삭제
-* DocumentSpace 선택
-* DocumentSpace 이름 변경
-* DocumentSpace 목록
-
-DocumentSpace는 Backend 및 상위 Domain이 관리하는 내부 Collection 개념으로 취급한다.
-
----
-
-# 15. Attachment 관계
-
-Frontend는 다음 두 데이터를 분리해 관리한다.
+Backend 계약:
 
 ```text
 content
-→ 문서의 실제 Block 구조
-
-attachmentIds
-→ 현재 Document에서 사용 중인 Attachment ID 목록
+→ 필수
+→ non-null JSON array
+→ 빈 배열 허용
+→ UTF-8 직렬화 최대 1 MiB
+→ nesting depth 최대 100
 ```
 
-저장 예:
+Frontend는 일반 작성 중 임의로 Block을 제거하거나 Content를 변형하여 이 제한을 맞추지 않는다.
+
+제한 초과 시 저장 오류를 명확하게 표현하고 현재 Editor 입력을 유지한다.
+
+---
+
+# 21. Autosave
+
+Document Update API:
+
+```http
+PUT /api/v2/documents/{documentId}
+```
+
+Request:
 
 ```json
 {
-  "title": "오늘의 개발 기록",
-  "content": [...],
-  "attachmentIds": ["550e8400-e29b-41d4-a716-446655440501", "550e8400-e29b-41d4-a716-446655440502"]
+  "title": "...",
+  "content": [],
+  "attachmentIds": []
 }
 ```
 
----
+세 필드는 전체 현재 상태이며 모두 전송한다.
 
-# 16. Attachment Registry
-
-Editor는 Upload한 Attachment의 Backend 식별자를 추적해야 한다.
-
-개념적으로 다음 정보를 관리할 수 있다.
+Autosave 흐름:
 
 ```text
-attachmentId
-contentUrl
-originalFilename
-contentType
+Editor 변경
+   ↓
+DIRTY
+   ↓
+Debounce
+   ↓
+PUT
+   ↓
+SAVED
 ```
 
-Upload 성공 시 Registry에 추가한다.
-
-Document에서 실제 사용 중인 Attachment만 `attachmentIds`에 포함한다.
-
-Image/File Block이 제거되면 해당 Attachment ID를 활성 목록에서 제외한다.
-
-새로고침 후 Registry를 복원하는 metadata 제공 방식은 실제 Integration 전에 Backend와 확정해야 한다. Document Detail metadata, 별도 metadata API 또는 Backend가 승인한 매핑 방식 중 합의된 계약을 사용하고 filename·URL parsing으로 ID·MIME·소유 관계를 추론하지 않는다. Mock 전용 임시 resolver는 사용할 수 있지만 실제 API 계약으로 간주하지 않으며, 실제 연동 전환 시 이 기능에 추가한 Mock과 함께 제거한다.
+초기 Debounce 기준은 약 1~2초이며 구현 PLAN에서 조정할 수 있다.
 
 ---
 
-# 17. Image / File Upload
+# 22. attachmentIds 제한
 
-이미지는 다음 방식을 지원한다.
-
-* Image Block
-* Drag & Drop
-* Clipboard Paste
-
-일반 파일은 File Block을 사용한다.
-
-흐름:
+PUT의 `attachmentIds`는 필수다.
 
 ```text
-BlockNote
-   ↓
-Upload Adapter
-   ↓
-POST Attachment API
-   ↓
-attachmentId + contentUrl
-   ↓
-Block 삽입
+non-null 배열
+UUID string
+null 원소 금지
+중복 금지
+최대 100개
 ```
 
-Frontend는 MinIO를 직접 호출하지 않는다.
+생략은 오류다.
+
+```json
+"attachmentIds": []
+```
+
+는 현재 Document에서 모든 Attachment를 detach한다는 의미다.
 
 ---
 
-# 18. Attachment URL
+# 23. Autosave 직렬화
 
-Document JSON에는 Backend의 안정적인 Application URL을 저장한다.
+동일 Document에서 PUT 요청을 동시에 여러 개 실행하지 않는다.
 
 예:
 
 ```text
-/api/v2/attachments/550e8400-e29b-41d4-a716-446655440501/content
+Save A 실행
+   ↓
+사용자 추가 입력 B
+   ↓
+B는 pending
+   ↓
+A 완료
+   ↓
+최신 B snapshot 저장
 ```
 
-다음 값은 저장하지 않는다.
+최대 동시 PUT은 1개다.
 
-* MinIO 내부 URL
-* Bucket URL
-* Object Key
-* 만료되는 Presigned URL
+오래된 Save Response가 최신 Editor 상태를 덮어써서는 안 된다.
+
+Document는 revision/ETag 기반 optimistic locking을 사용하지 않는다.
+
+다른 Browser/Tab과 동시에 수정하면 마지막 Backend commit이 이길 수 있다는 계약을 Frontend가 별도 History 기능으로 해결하려 하지 않는다.
 
 ---
 
-# 19. 자동 저장
+# 24. 저장 상태 UX
 
-Title 또는 Content 변경 시 자동 저장한다.
-
-```text
-변경
- ↓
-DIRTY
- ↓
-Debounce
- ↓
-PUT /api/v2/documents/{documentId}
- ↓
-SAVED
-```
-
-초기 Debounce는 약 1~2초를 기준으로 검토한다.
-
----
-
-# 20. Autosave 동시성
-
-동일 Document에 여러 Save Request를 동시에 실행하지 않는다.
-
-```text
-Save 진행 중
-   ↓
-추가 변경 발생
-   ↓
-DIRTY 유지
-   ↓
-현재 Save 완료
-   ↓
-최신 상태 다시 Save
-```
-
-오래된 Response가 최신 사용자 입력을 덮어쓰지 않도록 한다.
-
----
-
-# 21. 저장 상태
-
-최소 다음 상태를 사용자에게 표시한다.
+최소 다음 상태를 표시한다.
 
 ```text
 저장 중...
@@ -450,7 +651,7 @@ DIRTY 유지
 저장 실패
 ```
 
-내부 상태는 필요에 따라 다음과 같이 구성할 수 있다.
+내부적으로 필요하면:
 
 ```text
 IDLE
@@ -460,126 +661,610 @@ SAVED
 ERROR
 ```
 
-저장 실패 시 Editor의 현재 입력 상태를 제거하지 않는다.
+상태를 사용할 수 있다.
+
+Save 실패 시 현재 title/content/attachment registry를 제거하거나 이전 서버 값으로 강제 Rollback하지 않는다.
 
 ---
 
-# 22. Publish
+# 25. Publish
 
-Document 상태:
+API:
 
-```text
-DRAFT
-PUBLISHED
+```http
+POST /api/v2/documents/{documentId}/publish
 ```
 
-Publish 전에 최신 Editor 상태를 저장한다.
+Request Body 없음.
+
+Publish 전에 최신 PUT이 성공해야 한다.
 
 ```text
-Dirty 확인
- ↓
-최종 Save
- ↓
-Save 성공
- ↓
+Publish 클릭
+   ↓
+진행 중 Upload 확인
+   ↓
+최신 Save Flush
+   ↓
+PUT 성공
+   ↓
 Publish
 ```
 
-저장이 실패한 상태에서 이전 서버 데이터만 게시해서는 안 된다.
+최신 Save가 실패하면 Publish 요청은 보내지 않는다.
+
+Publish 성공은 `200 DocumentResponse`다.
 
 ---
 
-# 23. Route
+# 26. PUBLISHED 문서 수정
 
-실제 프로젝트 Router Convention을 우선한다.
+PUBLISHED Document도 PUT으로 수정할 수 있다.
 
-개념적으로 필요한 화면:
+수정 이후에도:
 
 ```text
-Journal 상세
-→ 해당 Journal의 Document 목록
-
-/documents/:documentId
-→ Read-only Viewer
-
-/documents/:documentId/edit
-→ Editor
+status = PUBLISHED
 ```
 
-Editor 및 Viewer는 공용 컴포넌트로 구현한다.
+를 유지하며 최초 `publishedAt`을 유지한다.
 
----
-
-# 24. Journals 적용
-
-현재 1차 통합 대상은 `journals`이다.
-
-각 Journal은 자신의 DocumentSpace를 통해 여러 Document를 가질 수 있다.
-
-예:
+Publish API 재호출은:
 
 ```text
-Journal {journalId}
-├─ Document A
-├─ Document B
-└─ Document C
+200
+동일 PUBLISHED 상태
+추가 상태 변경 없음
 ```
 
-Journal 화면의 실제 UI 구조와 기존 Route는 현재 코드베이스를 분석한 뒤 최대한 기존 UX를 유지한다.
+이다.
+
+Frontend는 별도의 Unpublish 기능을 제공하지 않는다.
+
+게시 이후에도 권한이 있는 사용자는 Editor에서 수정할 수 있어야 한다.
 
 ---
 
-# 25. 오류 처리
+# 27. Attachment Upload
 
-최소 다음 오류를 처리한다.
+API:
 
-* Journal Document 생성 실패
-* Document 목록 조회 실패
-* Document 조회 실패
-* Document 저장 실패
-* Document 삭제 실패
-* Publish 실패
-* Attachment Upload 실패
-* Attachment 조회 실패
-* 권한 없음
-* 존재하지 않는 Document
+```http
+POST /api/v2/attachments
+Content-Type: multipart/form-data
+```
 
-Attachment 하나의 Upload 실패가 Editor 전체 장애로 이어지지 않아야 한다.
+Form:
+
+```text
+documentId=<UUID>
+file=<binary>
+```
+
+Document가 생성된 이후에만 Upload할 수 있다.
+
+성공:
+
+```text
+201 Created
+```
+
+Response:
+
+```text
+id
+documentId
+originalFilename
+contentType
+size
+status
+contentUrl
+createdAt
+```
+
+Upload 직후:
+
+```text
+status = TEMP
+```
+
+이다.
 
 ---
 
-# 26. 제외 범위
+# 28. File Validation UX
 
-1차 구현에는 다음을 포함하지 않는다.
+Backend 최종 기준:
 
-* Project Document 연동
-* Milestone Document 연동
-* Resource Document 연동
-* 실시간 공동 편집
-* Comment
-* Mention
-* Relation
-* Database View
-* Kanban
-* Calendar
-* Share Link
-* Page Tree
-* Template
-* History / Revision
-* AI
-* Custom Block
-* 외부 API Block
-* GitHub Block
-* Server Block
-* Kubernetes Block
+```text
+파일 크기:
+0 byte 거부
+최대 10 MiB
 
-향후 필요하다는 이유로 미리 관련 구조를 구현하지 않는다.
+Multipart 전체:
+최대 11 MiB
+
+허용:
+PNG
+JPEG
+PDF
+UTF-8 TXT
+
+거부:
+SVG
+HTML
+JavaScript
+실행 파일
+Archive
+기타 allowlist 밖 형식
+```
+
+Frontend에서도 선택 시 빠른 사용자 피드백을 제공할 수 있지만 최종 판정은 Backend가 한다.
+
+Frontend 검증을 통과했다고 Upload 성공을 가정하지 않는다.
+
+Filename은 최대 255 UTF-16 units이며 Backend가 최종 안전성 검증을 수행한다.
 
 ---
 
-# 27. 향후 다른 Domain 연동
+# 29. Attachment Registry
 
-향후 다른 기능에 Document를 추가할 때는 동일한 DocumentSpace 구조를 사용한다.
+Frontend는 Upload한 서비스 Attachment를 추적한다.
+
+최소 Metadata:
+
+```text
+attachmentId
+contentUrl
+originalFilename
+contentType
+```
+
+Document Save 시 현재 BlockNote Content에서 실제로 사용 중인 서비스 Attachment만 `attachmentIds`에 포함한다.
+
+동일 Attachment를 여러 Block이 사용할 경우 마지막 Reference가 사라질 때까지 `attachmentIds`에서 제거하지 않는다.
+
+Undo/Redo에 의해 Reference가 다시 나타나면 기존 Registry를 재사용할 수 있어야 한다.
+
+외부 URL을 서비스 Attachment로 추정하지 않는다.
+
+---
+
+# 30. Attachment Registry 복원 Integration Gate
+
+현재 Document Detail에는 다음 필수 배열이 포함된다:
+
+```text
+attachmentIds
+```
+
+뿐 아니라 `attachments` 전체 metadata 배열이 포함된다. 두 배열은 같은 snapshot·UUID 순서이며 최대 100개 ATTACHED를 제공하고 TEMP는 제외한다.
+
+새로고침 후 Registry를 완전히 복원하려면 다음 Metadata가 추가로 필요하다.
+
+```text
+attachmentId
+originalFilename
+contentType
+contentUrl
+```
+
+2026-09-23 보완된 live OpenAPI의 AttachedSnapshot은 id, documentId, originalFilename, contentType, size, status, contentUrl, createdAt을 필수로 제공한다. 별도 metadata API나 임시 Mock Metadata Resolver를 구현하지 않는다.
+
+[Backend 보완 결과](document-editor-backend-followup.md)로 계약 gate는 해결되었다. 실제 복원은 별도로 검증한다. 배열 길이·순서·중복·문서 소속·ATTACHED 상태를 검증하고 실패 시 저장을 차단한다. 저장 도중 업로드한 TEMP와 detach 이후 Undo용 metadata는 유지한다.
+
+첫 번째 방식으로 확정했다. 아래는 이전 검토 대안이며 추가 구현 범위가 아니다.
+
+```text
+Document Detail에서 Attachment Metadata 제공
+또는
+Attachment Metadata 조회 API
+또는
+Backend에서 승인한 다른 조회 방식
+```
+
+Filename, URL parsing, 확장자 등을 이용해 Metadata나 소유권을 임의 추론하지 않는다.
+
+---
+
+# 31. Attachment Content
+
+안정적인 Application URL:
+
+```http
+GET /api/v2/attachments/{attachmentId}/content
+```
+
+Frontend가 저장하고 사용하는 URL은 Backend Application URL이다.
+
+다음 Storage 내부 정보에는 의존하지 않는다.
+
+```text
+Storage Root
+절대 파일 경로
+objectKey
+Storage 직접 접근 URL
+Presigned URL
+```
+
+현재 Backend 구현체가 LocalFileStorage인지 향후 다른 Storage인지 Frontend Runtime 설계에는 영향을 주지 않는다.
+
+---
+
+# 32. Content 표시 방식
+
+Backend 계약:
+
+```text
+PNG / JPEG
+→ inline
+
+PDF / TXT
+→ attachment download
+```
+
+Frontend가 PDF/TXT를 이미지처럼 inline preview해야 한다고 가정하지 않는다.
+
+Attachment Content 조회 실패는 해당 파일 단위 오류로 표현한다.
+
+파일 하나의 오류 때문에 전체 Document Content를 빈 상태로 바꾸지 않는다.
+
+---
+
+# 33. Attachment 상태 전이
+
+기본 Lifecycle:
+
+```text
+Upload
+ ↓
+TEMP
+ ↓
+Document Save attachmentIds에 포함
+ ↓
+ATTACHED
+```
+
+Block 제거 후 Save:
+
+```text
+ATTACHED
+ ↓
+attachmentIds에서 제외
+ ↓
+TEMP
+```
+
+TEMP는 Backend Grace Period 동안 다시 ATTACHED로 연결될 수 있다.
+
+Frontend는 Block 제거 즉시 Binary Hard Delete를 수행하지 않는다.
+
+---
+
+# 34. Attachment 직접 삭제
+
+API:
+
+```http
+DELETE /api/v2/attachments/{attachmentId}
+```
+
+ATTACHED 직접 삭제:
+
+```text
+409 ATTACHMENT_IN_USE
+```
+
+먼저 Editor에서 해당 Reference를 제거하고 Save를 성공시켜 TEMP 상태로 만들어야 한다.
+
+TEMP 직접 삭제 성공:
+
+```http
+200 OK
+```
+
+```json
+{
+  "deletedId": "<attachment UUID>"
+}
+```
+
+이 성공은 Backend 기준으로 파일 제거와 Attachment Metadata 삭제가 완료되었음을 뜻한다.
+
+Frontend는 해당 Attachment를 Registry에서 제거할 수 있다.
+
+---
+
+# 35. Attachment 삭제 진행 중 / Storage 오류
+
+삭제 claim이 있는 Attachment의 재연결 또는 중복 삭제:
+
+```text
+409 ATTACHMENT_DELETION_PENDING
+```
+
+Storage 실패:
+
+```text
+503 STORAGE_UNAVAILABLE
+```
+
+503 이후 Backend 내부 재시도가 계속될 수 있으므로 Frontend는 실패 응답을 성공으로 간주하지 않는다.
+
+사용자에게 오류 상태를 표시하고 임의로 같은 Mutation을 무한 자동 재시도하지 않는다.
+
+삭제 claim 이후 Attachment Content는 404가 될 수 있다.
+
+---
+
+# 36. Document 삭제
+
+API:
+
+```http
+DELETE /api/v2/documents/{documentId}
+```
+
+성공:
+
+```http
+200 OK
+```
+
+```json
+{
+  "deletedId": "<document UUID>"
+}
+```
+
+이 성공의 의미:
+
+> Document와 Attachment Metadata의 DB Hard Delete 및 관련 Binary 삭제 작업의 영속화가 완료되었다.
+
+이 응답은 모든 Binary 파일의 물리 삭제가 이미 완료됐다는 의미는 아니다.
+
+Frontend는 200 이후:
+
+```text
+Document 목록에서 제거
+Editor 종료
+안전한 이전 화면으로 이동
+```
+
+할 수 있다.
+
+사용자 UI에서 이를 `모든 파일 물리 삭제 완료`로 표현하지 않는다.
+
+반복 조회/삭제는 404가 될 수 있다.
+
+---
+
+# 37. Journal 삭제와 Frontend
+
+Journal 삭제 이후 Backend가 다음 Lifecycle을 관리한다.
+
+```text
+Journal
+ ↓
+DocumentSpace
+ ↓
+Documents
+ ↓
+Attachments
+```
+
+Frontend가 Attachment를 개별적으로 연쇄 DELETE하지 않는다.
+
+기존 Journal 삭제 성공 계약을 따른다.
+
+Journal 삭제 후 열린 Document Page는 재조회 시 404를 적절하게 처리하고 Journals 화면으로 돌아갈 수 있는 경로를 제공한다.
+
+---
+
+# 38. API Error Contract
+
+공통 오류 구조:
+
+```json
+{
+  "code": "...",
+  "message": "...",
+  "fieldErrors": [],
+  "requestId": "..."
+}
+```
+
+주요 오류:
+
+```text
+400 VALIDATION_ERROR
+400 INVALID_CURSOR
+
+401 AUTH_REQUIRED
+
+403 ACCOUNT_DISABLED
+403 CSRF_INVALID
+
+404 RESOURCE_NOT_FOUND
+
+409 ATTACHMENT_IN_USE
+409 ATTACHMENT_DELETION_PENDING
+
+413 PAYLOAD_TOO_LARGE
+
+415 UNSUPPORTED_MEDIA_TYPE
+
+503 STORAGE_UNAVAILABLE
+
+500 INTERNAL_ERROR
+```
+
+타인 Resource와 존재하지 않는 Resource는 모두 404로 처리될 수 있으므로 Frontend가 두 경우를 구별한다고 가정하지 않는다.
+
+---
+
+# 39. 인증 / 보안
+
+기존 Session 인증 및 CSRF/Origin 정책을 사용한다.
+
+Frontend가 다음 값을 임의 생성하거나 신뢰 가능한 서버 데이터처럼 보내지 않는다.
+
+```text
+authorId
+createdBy
+documentSpaceId
+status
+objectKey
+audit timestamps
+```
+
+Archived Project 아래 기존 Journal에 대해서는 Document 작성·편집·게시·삭제가 허용되므로 Frontend가 Project Archived 상태만으로 해당 기능을 임의 비활성화하지 않는다.
+
+---
+
+# 40. 실제 API 연동 원칙
+
+2026-09-23 계획 수정에 따라 PLAN-0025는 실제 API를 사용한다. 개발용 Mock 서버·preview mode·임시 metadata resolver·운영 fallback을 새로 만들지 않는다. 기존 Journal 상세와 신규 Document/Attachment API를 같은 session/transport 경계에서 사용한다.
+
+Swagger 확인은 API 명세 가용성 확인이며 인증된 실제 통합 성공을 뜻하지 않는다. 사용자 업무 데이터가 아닌 disposable 환경에서 검증한다. 기존 타 기능 fixtures는 유지하며 순수 controller 단위 테스트의 시간·Promise 제어는 API 서버 대체 구현과 구분한다.
+
+---
+
+# 41. 실제 API 및 HTTP 검증
+
+9개 API 경로와 성공 응답은 [공용 계약](DOCUMENT_EDITOR_COMMON_CONTRACT.md)을 기준으로 한다. FormData 전송은 브라우저 boundary와 기존 CSRF/Origin/session generation을 유지한다. 현재 JSON 전용 client 확장, 15초 timeout의 업로드 적합성, 프론트 Nginx 요청 용량/timeout을 검토한다.
+
+기존 disposable real harness에서 정상·실패·응답 유실·reload·파일 표시/다운로드를 확인한다. 실제 생성·업로드에 재시도 보장이 없으므로 자동 POST replay를 하지 않는다. X-Workspace-Data-Revision은 문자열 freshness 관측 값이며 문서 편집 revision으로 쓰지 않는다. 순차 PUT은 다중 탭의 lost update 방지를 보장하지 않는다.
+
+---
+
+# 42. 검증 격리·완료 증거
+
+실제 DB/파일 저장소·Vite·fresh Nginx를 검증한다. 사용자 port-8080 업무 데이터에 검증용 mutation을 보내지 않는다. 소유한 테스트 프로세스·데이터만 정리하고 쿠키·토큰·비밀정보는 기록하지 않는다.
+
+이번 기능의 개발용 Mock dataset/adapter/handler/upload asset/metadata resolver/오류 서버/seed/preview config/fallback을 추가하지 않는다. 잔여 구현이 발견되면 실제 adapter 연결과 함께 제거한다. 장애는 순수 단위 제어 또는 실제 요청의 지연/응답 차단으로 검증하고 가짜 응답을 실제 통합 증거로 보고하지 않는다. Production artifact에 개발 fixture/secret이 없어야 한다.
+
+---
+
+# 43. Navigation Guard
+
+Editor가 다음 상태일 경우 Page 이탈을 고려한다.
+
+```text
+DIRTY
+SAVING
+ERROR
+Upload Pending
+```
+
+기존 Navigation Guard/Unsaved Changes 구조를 재사용한다.
+
+브라우저 종료 시 비동기 저장 완료를 보장한다고 가정하지 않는다.
+
+취소된 HTTP 요청이 Backend에서 Rollback됐다고 간주하지 않는다.
+
+---
+
+# 44. Loading / Empty / Error 상태
+
+Journal:
+
+```text
+Detail Loading
+Detail Error
+Document List Loading
+Document List Empty
+Document List Error
+Additional Page Error
+```
+
+Document:
+
+```text
+Loading
+Not Found
+Access Denied
+Invalid Content
+Save Error
+Publish Error
+Delete Error
+```
+
+Attachment:
+
+```text
+Uploading
+Upload Error
+Content Load Error
+Deletion Pending
+Storage Error
+```
+
+각 상태를 독립적으로 표현한다.
+
+Document List 오류가 Journal 기본정보를 제거해서는 안 된다.
+
+Attachment 하나의 오류가 전체 Editor 장애로 이어져서는 안 된다.
+
+---
+
+# 45. Journal 기존 기능 보존
+
+기존 Journal 기능:
+
+```text
+Journal 생성
+Journal 수정
+Journal 삭제
+Journal body
+Project 관계
+Entry Date
+Revision
+검색/필터
+```
+
+를 유지한다.
+
+Document 기능 때문에 기존 Journal Editor를 공용 Document Editor로 교체하지 않는다.
+
+Journal과 Document는 1차에서 서로 다른 Content Model이다.
+
+---
+
+# 46. 제외 범위
+
+현재 구현하지 않는다.
+
+```text
+Project ↔ DocumentSpace
+Milestone ↔ DocumentSpace
+Resource ↔ DocumentSpace
+
+Realtime Collaboration
+Comment
+Mention
+Template
+History / Revision
+Share Link
+Relation
+Database View
+Kanban
+Calendar
+AI
+
+Custom Block
+GitHub Integration
+Server Integration
+Kubernetes Integration
+```
+
+향후 필요할 수 있다는 이유로 관련 Frontend Store/API/Component를 선행 구현하지 않는다.
+
+---
+
+# 47. 향후 확장성
+
+향후 다른 Domain에서 Document를 사용할 경우에도 공용 Editor/Viewer를 재사용한다.
 
 예:
 
@@ -588,68 +1273,125 @@ Project
    ↓
 DocumentSpace
    ↓
-Document
+Document Editor
 ```
 
-또는:
+Frontend의 공용 Editor가 JournalStore 또는 `journalId`에 의존하지 않아야 한다.
+
+새 Domain은 Document 생성/목록 Context만 제공한다.
+
+---
+
+# 48. Frontend PLAN 작성 전 확인사항
+
+Frontend PLAN 작성 전 실제 코드에서 다음을 확인한다.
 
 ```text
-Milestone
-   ↓
-DocumentSpace
-   ↓
-Document
+React / TypeScript 버전
+BlockNote 설치 여부 및 호환 버전
+Router 구조
+safeReturnTo
+API Client
+QueryManager
+Authentication
+CSRF
+Error Handling
+Journal Page 구조
+Journal Modal 사용처
+Journal Existing CRUD
+Home / Project Journal 진입점
+Navigation Guard
+Upload/FormData 지원 여부
+Mock/Test 구조
+Build/Test/Boundary/Query/Docs/Format 명령
 ```
 
-현재 Frontend 구현을 `journals` 전용 Editor로 만들지 않는다.
-
-Editor 자체는 공용으로 유지하고, Journal은 생성/목록 진입 Context만 담당한다.
+새로운 Repository-wide Tooling은 Document 기능 PLAN에 포함하지 않는다.
 
 ---
 
-# 28. PLAN 작성 전 확인사항
+# 49. Frontend 1차 완료 기준
 
-Frontend PLAN 작성 전에 다음을 실제 코드에서 확인한다.
+다음 사용자 흐름을 실제 Backend API와 파일 저장소에서 검증해야 한다.
 
-* React 버전
-* BlockNote 설치 여부 및 버전
-* Router 구조
-* API Client 구조
-* 인증 방식
-* 상태관리 방식
-* Error Handling
-* 기존 디자인 시스템
-* `journals` Page / Component 구조
-* Journal 상세 또는 목록 구조
-* Journal 관련 기존 API
-* Upload 관련 기존 코드
-* Backend API Proxy/Base URL
+```text
+1. Journals 목록 표시
+
+2. Journal 클릭
+   → 기존 읽기 Modal 대신 Journal Viewer Page
+
+3. Journal Viewer
+   → 기존 Journal 정보/body 표시
+   → Document 목록 표시
+
+4. Journals 또는 Viewer에서 새 글 작성
+
+5. Journal Context 확인
+
+6. 201 DRAFT Document 생성
+
+7. UUID documentId 기반 Editor 진입
+
+8. Title / BlockNote Content 작성
+
+9. Slash / Formatting / Drag & Drop 사용
+
+10. Attachment Upload
+    → TEMP
+
+11. Autosave
+    → attachmentIds
+    → ATTACHED
+
+12. 새로고침
+    → Document 및 Attachment 관계 복원
+
+13. Publish
+    → 최신 Save 성공 이후
+    → PUBLISHED
+
+14. PUBLISHED Document 재편집 및 Save
+
+15. Read-only Viewer 조회
+
+16. Attachment Block 제거
+    → Save
+    → TEMP
+
+17. TEMP 직접 삭제 또는 Backend Cleanup
+
+18. Document DELETE 200
+    → 목록에서 제거
+    → 물리 Binary 삭제 완료로 오해하지 않음
+
+19. Journal 삭제 이후 열린 Document 404 처리
+```
+
+첨부 metadata 복원 gate를 포함한 실제 Vite/Nginx 검증을 통과해야 Frontend 통합 완료로 판단한다. Production 배포 완료를 뜻하지 않는다.
 
 ---
 
-# 29. Frontend 완료 기준
+# 50. 실제 Backend Integration 전 필수 Gate
 
-다음 흐름이 정상 동작해야 한다.
+실제 API 연결 전 다음을 확인한다.
 
-1. Journal에서 Document 목록 조회
-2. Journal에서 새 DRAFT Document 생성
-3. 공용 Document Editor 진입
-4. 제목 작성
-5. Block Content 작성
-6. Slash Command 사용
-7. Formatting 사용
-8. Toggle 사용
-9. Block Drag & Drop
-10. Image Upload
-11. Drag & Drop / Clipboard Image Paste
-12. File Upload
-13. Autosave
-14. 저장 상태 표시
-15. 새로고침 후 내용 복원
-16. Attachment 관계 복원
-17. 최신 상태 저장 후 Publish
-18. Journal Document 목록에서 게시글 조회
-19. Read-only Viewer 표시
-20. 저장 실패 시 현재 사용자 입력 유지
+```text
+Backend PLAN/API 구현 완료 여부
+/v3/api-docs
 
-이 요구사항을 기준으로 Frontend 구현 PLAN을 작성한다.
+UUID DTO
+/api/v2 Endpoint
+Cursor Contract
+Validation Limit
+Error Code
+PUBLISHED PUT/Publish 동작
+DELETE 성공 의미
+
+Attachment Registry Metadata 복원 방법
+Multipart/FormData
+Attachment Content 인증/응답
+```
+
+공용 계약과 실제 OpenAPI가 다르면 응답을 임의 보정하지 않고 계약을 재검토한다. 2026-09-23 명세에서 ID/endpoint/cursor/게시/삭제와 attachments 복원 계약을 확인했다. 용량 등 설정 의존 제한과 실제 복원은 통합 검증으로 확인한다.
+
+[PLAN-0025](../plans/PLAN-0025-journal-document-editor.md)는 실제 API 연동 범위로 수정됐으며 구현 승인은 별도다.
