@@ -1,0 +1,26 @@
+name: devspace-front
+
+services:
+  front:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    restart: unless-stopped
+
+    environment:
+      BACKEND_UPSTREAM: http://app:8080
+
+    ports:
+      - '127.0.0.1:3200:10000'
+
+    networks:
+      - devspace-back_backend
+
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  devspace-backend:
+    external: true
+    name: devspace-back_backend

@@ -1,0 +1,70 @@
+name: Deploy Devspace Frontend
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: devspace-front-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy Frontend
+    runs-on: [self-hosted, linux, x64]
+    timeout-minutes: 30
+
+    steps:
+      # 1. Repository Checkout
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # 2. Docker Compose 검증
+      - name: Validate Compose
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f compose.yml config -q
+
+      # 3. Frontend 빌드 및 배포
+      - name: Deploy Frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          docker compose \
+            -f compose.yml \
+            up -d --build --wait front
+
+      # 4. HTTP 응답 확인
+      - name: Verify Deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for i in {1..10}; do
+            if curl -fsS \
+              http://127.0.0.1:3200/ \
+              -o /dev/null; then
+              echo "Frontend is responding"
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          echo "::error::Frontend health check failed"
+          exit 1
+
+      # 5. 배포 상태 출력
+      - name: Container Status
+        if: always()
+        run: docker compose -f compose.yml ps
