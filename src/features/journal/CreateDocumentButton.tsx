@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type Ref } from 'react';
 import { CancelledError } from '../../shared/http/client';
 import { registerDirtyForm } from '../../shared/lib/navigationGuard';
 import { Button } from '../../shared/ui/controls';
@@ -8,10 +8,16 @@ export function CreateDocumentButton({
   journalId,
   store,
   onCreated,
+  disabled,
+  buttonRef,
+  regionRef,
 }: {
   journalId: string;
   store: JournalDocuments;
   onCreated: (id: string) => void;
+  disabled: boolean;
+  buttonRef: Ref<HTMLButtonElement>;
+  regionRef: Ref<HTMLDivElement>;
 }) {
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState('');
@@ -34,7 +40,7 @@ export function CreateDocumentButton({
     };
   }, []);
   const create = async () => {
-    if (releaseGuard.current || error) return;
+    if (disabled || releaseGuard.current || error) return;
     releaseGuard.current = registerDirtyForm();
     setIsBusy(true);
     try {
@@ -56,8 +62,19 @@ export function CreateDocumentButton({
     }
   };
   return (
-    <div>
-      <Button variant="primary" disabled={isBusy || Boolean(error)} onClick={() => void create()}>
+    <div
+      className="journal-detail-create"
+      ref={regionRef}
+      tabIndex={-1}
+      role="group"
+      aria-label="새 글 작성 영역"
+    >
+      <Button
+        ref={buttonRef}
+        variant="primary"
+        disabled={disabled || isBusy || Boolean(error)}
+        onClick={() => void create()}
+      >
         {isBusy ? '초안 만드는 중…' : '새 글 작성'}
       </Button>
       {error && <p role="alert">{error}</p>}

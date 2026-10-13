@@ -23,6 +23,11 @@ for (const suffix of ['', '/']) {
 
     await page.goto('/journals' + suffix);
     await expect(page.locator('.document-row')).toContainText('Journal 1');
+    await expect(page.getByRole('button', { name: /^검색 및 정렬/ })).toHaveCount(1);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByLabel('현재 화면 검색')).toHaveCount(0);
+    await expect(page.getByLabel('일지 정렬')).toHaveCount(0);
+    await expect(page.locator('.journal-query-toolbar, .classification-toolbar')).toHaveCount(0);
     await expect(page.locator('.auth-pending')).toHaveCount(0);
   });
 }

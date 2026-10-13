@@ -1,11 +1,10 @@
 import { ArrowUpRight, BookOpen, Plus, Search, Trash2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import { Button, EmptyState, Field, Modal } from '../../shared/ui/controls';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { Button, EmptyState, Modal } from '../../shared/ui/controls';
 import { PageScaffold } from '../../shared/ui/PageScaffold';
 import { HttpError, CancelledError } from '../../shared/http/client';
 import { useQuery } from '../../shared/http/query';
 import type { CategoryFilter, CategoryOption } from '../projects/categoryFilter';
-import { CategoryFilterControl } from '../projects/CategoryFilterControl';
 import { journalDraft, presentation, type ApiJournal, type JournalProjectOption } from './apiModel';
 import type { JournalMemory } from './draftMemory';
 import type { JournalFilter, JournalStore } from './apiStore';
@@ -13,6 +12,7 @@ import { ApiJournalEditor } from './ApiJournalEditor';
 import type { JournalProjectOptions } from './projectOptions';
 import type { JournalDocuments } from './documentCollection';
 import { CreateDocumentDialog } from './CreateDocumentDialog';
+import { JournalSearchDialog } from './JournalSearchDialog';
 
 export function ApiJournalWorkspace({
   store,
@@ -29,6 +29,7 @@ export function ApiJournalWorkspace({
   documents,
   onOpenJournal,
   onDocumentCreated,
+  searchButtonRef,
 }: {
   store: JournalStore;
   options: JournalProjectOptions;
@@ -43,18 +44,18 @@ export function ApiJournalWorkspace({
   documents: JournalDocuments;
   onOpenJournal: (id: string) => void;
   onDocumentCreated: (id: string, journalId: string) => void;
+  searchButtonRef: RefObject<HTMLButtonElement | null>;
   onFilterNavigate: (
     category: CategoryFilter,
     query: string,
     fields?: Partial<Record<'projectId' | 'from' | 'to' | 'sort', string>>,
-  ) => void;
+    restoreSearchFocus?: boolean,
+  ) => boolean;
 }) {
-  const [search, setSearch] = useState(queryText);
-  const setProjectId = (value: string) =>
-    onFilterNavigate(category, queryText, { projectId: value });
-  const setFrom = (value: string) => onFilterNavigate(category, queryText, { from: value });
-  const setTo = (value: string) => onFilterNavigate(category, queryText, { to: value });
-  const setSort = (value: string) => onFilterNavigate(category, queryText, { sort: value });
+  const [searching, setSearching] = useState(false);
+  const isSearchOpen = useRef(false);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
+  const editRequest = useRef<object | null>(null);
   const [editing, setEditing] = useState(false);
   const [selecting, setSelecting] = useState(false);
   const [creatingDocument, setCreatingDocument] = useState<ApiJournal>();
@@ -76,19 +77,26 @@ export function ApiJournalWorkspace({
   };
   const list = store.list(filter);
   const state = useQuery(list);
-  const hasFilters = !!(queryText || category !== 'all' || projectId || from || to);
+  const hasFilters = !!(
+    queryText ||
+    category !== 'all' ||
+    projectId ||
+    from ||
+    to ||
+    sort !== 'newest'
+  );
   const projects = useMemo(
     () => new Map((projectState.data?.items ?? []).map((project) => [project.id, project])),
     [projectState.data],
   );
   const [selectedProject, setSelectedProject] = useState<JournalProjectOption>();
 
-  useEffect(() => setSearch(queryText), [queryText]);
-  useEffect(() => {
-    if (search === queryText) return;
-    const timer = setTimeout(() => onFilterNavigate(category, search), 250);
-    return () => clearTimeout(timer);
-  }, [onFilterNavigate, queryText, category, search]);
+  useEffect(
+    () => () => {
+      editRequest.current = null;
+    },
+    [],
+  );
   useEffect(() => {
     if (!projectId || projects.has(projectId)) return;
     const query = options.detail(projectId);
@@ -103,8 +111,14 @@ export function ApiJournalWorkspace({
   }, [options, projectId, projects]);
   if (selectedProject) projects.set(selectedProject.id, selectedProject);
 
-  const reset = () => {
-    onFilterNavigate('all', '', { projectId: '', from: '', to: '', sort: '' });
+  const openSearch = () => {
+    if (editRequest.current || editing || selecting || creatingDocument || deleting) return;
+    isSearchOpen.current = true;
+    setSearching(true);
+  };
+  const closeSearch = () => {
+    isSearchOpen.current = false;
+    setSearching(false);
   };
   const current = () => store.transport.generation === store.transport.lifecycle.generation;
   const startCreate = () => {
@@ -113,24 +127,36 @@ export function ApiJournalWorkspace({
     setEditing(true);
   };
   const startEdit = async (journal: ApiJournal) => {
-    if (pending.has(journal.id)) return;
+    if (pending.has(journal.id) || editRequest.current || isSearchOpen.current) return;
+    const request = {};
+    editRequest.current = request;
+    setIsLoadingEdit(true);
     setPending(new Set([...pending, journal.id]));
     setNotice('');
-    const query = store.detail(journal.id);
-    query.invalidate();
-    await query.load();
-    if (current()) {
+    try {
+      const query = store.detail(journal.id);
+      query.invalidate();
+      await query.load();
+      if (editRequest.current !== request || !current()) return;
       const next = query.getSnapshot();
       if (next.status === 'ready' && next.data) {
         memory.editor = { target: journal.id, baseline: next.data, draft: journalDraft(next.data) };
         setEditing(true);
       } else setNotice('일지를 확인하지 못했습니다. 제목을 눌러 다시 시도해 주세요.');
+    } catch {
+      if (editRequest.current === request && current())
+        setNotice('일지를 확인하지 못했습니다. 제목을 눌러 다시 시도해 주세요.');
+    } finally {
+      if (editRequest.current === request) {
+        editRequest.current = null;
+        setIsLoadingEdit(false);
+        setPending((previous) => {
+          const next = new Set(previous);
+          next.delete(journal.id);
+          return next;
+        });
+      }
     }
-    setPending((previous) => {
-      const next = new Set(previous);
-      next.delete(journal.id);
-      return next;
-    });
   };
   const saveComplete = (message?: string) => {
     memory.editor = undefined;
@@ -181,6 +207,16 @@ export function ApiJournalWorkspace({
         description="작업의 맥락과 다음 단계를 기록하세요."
         actions={
           <>
+            <Button
+              ref={searchButtonRef}
+              aria-haspopup="dialog"
+              disabled={isLoadingEdit}
+              onClick={openSearch}
+            >
+              <Search size={16} />
+              검색 및 정렬
+              {hasFilters && <span className="journal-search-applied">적용됨</span>}
+            </Button>
             <Button onClick={() => setSelecting(true)}>새 글 작성</Button>
             <Button variant="primary" onClick={startCreate}>
               <Plus size={16} />
@@ -188,53 +224,13 @@ export function ApiJournalWorkspace({
             </Button>
           </>
         }
-        filters={
-          <div className="section-toolbar classification-toolbar workbench-filter-toolbar">
-            <CategoryFilterControl
-              value={category}
-              options={categories}
-              onChange={(value) => onFilterNavigate(value, search)}
-            />
-            <Field label="일지 프로젝트 필터">
-              <select value={projectId} onChange={(event) => setProjectId(event.target.value)}>
-                <option value="">전체 프로젝트</option>
-                {[...projects.values()].map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                    {project.archived ? ' (보관)' : ''}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <label className="search">
-              <Search size={15} />
-              <input
-                aria-label="현재 화면 검색"
-                placeholder="일지 검색"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </label>
-          </div>
-        }
       >
         <div className="content-panel journal-page-content">
-          <div className="form-grid journal-query-toolbar">
-            <Field label="시작일">
-              <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
-            </Field>
-            <Field label="종료일">
-              <input type="date" value={to} onChange={(event) => setTo(event.target.value)} />
-            </Field>
-            <Field label="일지 정렬">
-              <select value={sort} onChange={(event) => setSort(event.target.value as typeof sort)}>
-                <option value="newest">최신순</option>
-                <option value="oldest">과거순</option>
-              </select>
-            </Field>
-          </div>
-          {!validRange && <p role="alert">종료일은 시작일 이후로 선택해 주세요.</p>}
-          {hasFilters && <Button onClick={reset}>일지 필터 초기화</Button>}
+          {!validRange && (
+            <p role="alert">
+              날짜 범위를 확인해 주세요. 검색 및 정렬에서 조건을 수정할 수 있습니다.
+            </p>
+          )}
           {notice && (
             <p className="notice" role="status">
               {notice}
@@ -254,6 +250,27 @@ export function ApiJournalWorkspace({
           )}
         </div>
       </PageScaffold>
+      {searching && (
+        <JournalSearchDialog
+          values={{ category, query: queryText, projectId, from, to, sort }}
+          categories={categories}
+          projects={[...projects.values()]}
+          onClose={closeSearch}
+          onApply={(values) =>
+            onFilterNavigate(
+              values.category,
+              values.query,
+              {
+                projectId: values.projectId,
+                from: values.from,
+                to: values.to,
+                sort: values.sort === 'newest' ? '' : values.sort,
+              },
+              true,
+            )
+          }
+        />
+      )}
       {editing && memory.editor && (
         <ApiJournalEditor
           store={store}
@@ -266,8 +283,8 @@ export function ApiJournalWorkspace({
       {selecting && (
         <Modal title="새 글을 연결할 일지 선택" onClose={() => setSelecting(false)}>
           <p>
-            현재 목록에서 일지를 직접 선택해 주세요. 원하는 일지가 없으면 목록의 검색·필터를
-            변경하거나 일지를 먼저 작성하세요.
+            현재 목록에서 일지를 직접 선택해 주세요. 원하는 일지가 없으면 이 창을 닫고 검색 및
+            정렬에서 조건을 변경하거나 일지를 먼저 작성하세요.
           </p>
           {state.data?.items.map((journal) => (
             <Button

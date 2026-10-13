@@ -6,6 +6,7 @@ import { validateCategories } from './categories.mjs';
 import { validateCategoryOnly } from './category-only.mjs';
 import { validateTasks } from './tasks.mjs';
 import { validateJournals } from './journals.mjs';
+import { validateJournalSearch } from './journal-search.mjs';
 import { validateMilestones } from './milestones.mjs';
 import { spawn, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -29,6 +30,7 @@ const phase = process.argv.find((arg) => arg.startsWith('--projects='))?.split('
 const categoryPhase = process.argv.includes('--categories');
 const categoryOnlyPhase = process.argv.includes('--category-only');
 const documentPhase = process.argv.includes('--documents');
+const journalSearchPhase = process.argv.includes('--journal-search');
 const taskPhase = process.argv.find((arg) => arg.startsWith('--tasks='))?.split('=')[1];
 const journalPhase = process.argv.find((arg) => arg.startsWith('--journals='))?.split('=')[1];
 const milestonePhase = process.argv.find((arg) => arg.startsWith('--milestones='))?.split('=')[1];
@@ -94,7 +96,7 @@ try {
   provider = await startProvider();
   const env = {
     ...process.env,
-    JAVA_HOME: 'C:\\Users\\nellu\\.jdks\\corretto-21.0.12.1',
+    JAVA_HOME: process.env.JAVA_HOME || 'C:\\Users\\nellu\\.jdks\\corretto-21.0.12.1',
     SPRING_PROFILES_ACTIVE: 'test',
     SERVER_PORT: '18080',
     SPRING_CONFIG_IMPORT: 'optional:file:./plan0009-no-env.properties',
@@ -232,11 +234,13 @@ try {
     assert(response.status() >= 400 || response.status() === 302);
     assert(!(response.headers()['content-type'] ?? '').includes('text/html'));
   }
-  const loginDestination = categoryOnlyPhase
-    ? '/projects?category=uncategorized&q=hello'
-    : dashboardPhase
-      ? '/projects?category=all&q=hello'
-      : '/projects/example?scope=all&q=hello';
+  const loginDestination = journalSearchPhase
+    ? '/journals'
+    : categoryOnlyPhase
+      ? '/projects?category=uncategorized&q=hello'
+      : dashboardPhase
+        ? '/projects?category=all&q=hello'
+        : '/projects/example?scope=all&q=hello';
   await page.goto(origin + loginDestination);
   assert.equal(await page.title(), 'devspace. · 나만의 개발 작업실');
   await page.getByRole('button', { name: 'Google로 계속하기' }).click();
@@ -367,6 +371,7 @@ try {
     }
     await validateDocuments({ page, context, origin, sql, alice, output });
   }
+  if (journalSearchPhase) await validateJournalSearch({ page, context, origin, output });
   const businessRowsBeforeAuth = sql(
     'select (select count(*) from projects)+(select count(*) from tasks)+(select count(*) from journals)+(select count(*) from milestones)+(select count(*) from links)',
   );

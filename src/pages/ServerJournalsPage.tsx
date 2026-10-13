@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import {
   readCategoryFilter,
   readProjectFilter,
@@ -25,16 +26,25 @@ export function ServerJournalsPage({
   memory: JournalMemory;
   categories: readonly CategoryOption[];
   url: URL;
-  onFilterNavigate: (path: string) => void;
+  onFilterNavigate: (path: string) => boolean;
   documents: JournalDocuments;
   onOpenJournal: (id: string) => void;
   onDocumentCreated: (id: string, journalId: string) => void;
 }) {
   const category = readCategoryFilter(url.searchParams);
   const query = url.searchParams.get('q') ?? '';
+  const searchButtonRef = useRef<HTMLButtonElement>(null);
+  const searchFocusTarget = useRef<string | undefined>(undefined);
+  const locationKey = url.pathname + url.search;
+  useEffect(() => {
+    const target = searchFocusTarget.current;
+    searchFocusTarget.current = undefined;
+    if (target === locationKey) searchButtonRef.current?.focus();
+  }, [locationKey]);
   return (
     <ApiJournalWorkspace
-      key={url.pathname + url.search}
+      key={locationKey}
+      searchButtonRef={searchButtonRef}
       store={store}
       documents={documents}
       onOpenJournal={onOpenJournal}
@@ -48,7 +58,7 @@ export function ServerJournalsPage({
       from={url.searchParams.get('from') ?? ''}
       to={url.searchParams.get('to') ?? ''}
       sort={url.searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest'}
-      onFilterNavigate={(nextCategory, nextQuery, fields = {}) => {
+      onFilterNavigate={(nextCategory, nextQuery, fields = {}, restoreSearchFocus = false) => {
         const params = new URLSearchParams(url.search);
         params.delete('scope');
         params.set('category', nextCategory);
@@ -58,7 +68,11 @@ export function ServerJournalsPage({
           if (value) params.set(key, value);
           else params.delete(key);
         }
-        onFilterNavigate('/journals' + (params.size ? '?' + params : ''));
+        const path = '/journals' + (params.size ? '?' + params : '');
+        searchFocusTarget.current = restoreSearchFocus ? path : undefined;
+        const accepted = onFilterNavigate(path);
+        if (!accepted) searchFocusTarget.current = undefined;
+        return accepted;
       }}
     />
   );

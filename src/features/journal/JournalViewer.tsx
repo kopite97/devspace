@@ -1,60 +1,109 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
+import { ArrowLeft, ArrowDown } from 'lucide-react';
 import { useQuery } from '../../shared/http/query';
 import { Button } from '../../shared/ui/controls';
-import { PageScaffold } from '../../shared/ui/PageScaffold';
 import type { JournalDocuments } from './documentCollection';
-import type { ApiJournal } from './apiModel';
+
+function focusAndScroll(element: HTMLElement | null) {
+  if (!element) return;
+  element.focus({ preventScroll: true });
+  element.scrollIntoView({
+    block: 'start',
+    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+  });
+}
 
 export function JournalViewer({
   id,
   store,
   onBack,
+  renderAction,
   renderDocuments,
 }: {
   id: string;
   store: JournalDocuments;
   onBack: () => void;
-  renderDocuments: (journal: ApiJournal) => ReactNode;
+  renderAction: (options: {
+    disabled: boolean;
+    buttonRef: RefObject<HTMLButtonElement | null>;
+    regionRef: RefObject<HTMLDivElement | null>;
+  }) => ReactNode;
+  renderDocuments: (options: {
+    headingRef: RefObject<HTMLHeadingElement | null>;
+    onGoToCreate: () => void;
+  }) => ReactNode;
 }) {
   const query = store.detail(id);
   const state = useQuery(query);
-  const surface = useRef<HTMLDivElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const documentsHeading = useRef<HTMLHeadingElement>(null);
+  const createButton = useRef<HTMLButtonElement>(null);
+  const createRegion = useRef<HTMLDivElement>(null);
   const focused = useRef(false);
+  const journal = state.data?.id === id ? state.data : undefined;
+  const visible = Boolean(journal) && state.status !== 'error';
   useEffect(() => {
-    if (state.status !== 'ready' || focused.current) return;
-    const heading = surface.current?.querySelector('h1');
-    if (heading) {
-      heading.tabIndex = -1;
-      heading.focus();
-      focused.current = true;
-    }
-  }, [state.status]);
+    if (state.status !== 'ready' || !journal || focused.current) return;
+    heading.current?.focus();
+    focused.current = true;
+  }, [state.status, journal]);
   return (
-    <div ref={surface}>
-      <PageScaffold
-        title={state.data?.title ?? '개발 일지'}
-        description="일지의 맥락과 연결된 문서를 함께 확인하세요."
-        actions={<Button onClick={onBack}>일지 목록</Button>}
-      >
-        {state.status === 'error' ? (
-          <div role="alert">
-            일지가 없거나 불러올 수 없습니다.{' '}
-            <Button onClick={() => void query.load(undefined, { force: true })}>다시 시도</Button>
+    <div className="journal-detail">
+      <header className="journal-detail-header">
+        <div className="journal-detail-toolbar">
+          <Button variant="ghost" onClick={onBack}>
+            <ArrowLeft size={16} />
+            일지 목록
+          </Button>
+          {/* Keep creation state and navigation protection alive during same-journal refetches. */}
+          <div className="journal-detail-action" hidden={!visible}>
+            {journal &&
+              renderAction({
+                disabled: state.status !== 'ready',
+                buttonRef: createButton,
+                regionRef: createRegion,
+              })}
           </div>
-        ) : !state.data ? (
-          <p role="status">일지를 불러오는 중…</p>
-        ) : (
-          <>
-            <article className="content-panel journal-viewer">
-              <p className="muted">
-                {state.data.projectName} · {state.data.entryDate}
-              </p>
-              <p className="detail-body">{state.data.body}</p>
-            </article>
-            {renderDocuments(state.data)}
-          </>
+        </div>
+        <h1 ref={heading} tabIndex={-1}>
+          {visible ? journal?.title : '개발 일지'}
+        </h1>
+        {visible && journal && (
+          <div className="journal-detail-meta">
+            <p>
+              <span>{journal.projectName}</span>
+              <time dateTime={journal.entryDate}>{journal.entryDate}</time>
+            </p>
+            <Button variant="ghost" onClick={() => focusAndScroll(documentsHeading.current)}>
+              연결된 글로 이동
+              <ArrowDown size={15} />
+            </Button>
+          </div>
         )}
-      </PageScaffold>
+      </header>
+      {state.status === 'error' ? (
+        <div className="journal-detail-message" role="alert">
+          <p>일지가 없거나 불러올 수 없습니다.</p>
+          <Button onClick={() => void query.load(undefined, { force: true })}>다시 시도</Button>
+        </div>
+      ) : !journal ? (
+        <p role="status">일지를 불러오는 중…</p>
+      ) : (
+        <div className="journal-detail-grid">
+          <article className="journal-viewer">
+            <p className="detail-body">{journal.body}</p>
+          </article>
+          {renderDocuments({
+            headingRef: documentsHeading,
+            onGoToCreate: () =>
+              focusAndScroll(
+                createButton.current && !createButton.current.disabled
+                  ? createButton.current
+                  : createRegion.current,
+              ),
+          })}
+        </div>
+      )}
     </div>
   );
 }

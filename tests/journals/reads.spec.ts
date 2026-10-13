@@ -30,9 +30,12 @@ test('server list keeps search, inclusive date filters, ordering and cursor page
   await page.getByRole('button', { name: '더 불러오기', exact: true }).click();
   await expect(page.locator('.document-row')).toHaveCount(3);
   expect(requests.at(-1)?.searchParams.get('cursor')).toBe('cursor+/=');
-  await page.locator('input[type="date"]').nth(0).fill('2026-09-11');
-  await page.locator('input[type="date"]').nth(1).fill('2026-09-30');
-  await page.locator('.form-grid select').last().selectOption('oldest');
+  await page.getByRole('button', { name: /검색 및 정렬/ }).click();
+  const search = page.getByRole('dialog', { name: '검색 및 정렬' });
+  await search.getByLabel('시작일').fill('2026-09-11');
+  await search.getByLabel('종료일').fill('2026-09-30');
+  await search.getByLabel('일지 정렬').selectOption('oldest');
+  await search.getByRole('button', { name: '적용', exact: true }).click();
   await expect.poll(() => requests.at(-1)?.searchParams.get('sort')).toBe('oldest');
   expect(requests.at(-1)?.searchParams.get('from')).toBe('2026-09-11');
   expect(requests.at(-1)?.searchParams.get('to')).toBe('2026-09-30');
@@ -115,3 +118,42 @@ test('Home Journal widget opens the independent Journal viewer without a read mo
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.locator('.journal-viewer .detail-body')).toHaveText('서버 데이터 확인');
 });
+
+for (const status of [404, 500]) {
+  test(`detail initial loading and ${status} retain back navigation without creation`, async ({
+    page,
+  }) => {
+    await setup(page);
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route('**/api/v2/journals/' + id(201), async (route) => {
+      await held;
+      await route.fulfill({ status, json: { code: 'DETAIL_FAILURE' } });
+    });
+    await page.goto('/journals/' + id(201));
+    await expect(page.getByRole('status')).toContainText('일지를 불러오는 중');
+    await expect(page.getByRole('button', { name: '새 글 작성', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: '일지 목록', exact: true })).toBeEnabled();
+    release();
+    await expect(page.getByRole('alert')).toContainText('일지가 없거나');
+    await expect(page.getByRole('region', { name: '일지 문서' })).toHaveCount(0);
+    await page.unroute('**/api/v2/journals/' + id(201));
+    await page.route('**/api/v2/journals/' + id(201), (route) =>
+      route.fulfill({ json: journal(1) }),
+    );
+    await page.getByRole('button', { name: '다시 시도', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+    await expect(page.getByRole('button', { name: '새 글 작성', exact: true })).toBeEnabled();
+    await expect(page.getByRole('region', { name: '일지 문서' })).toContainText(
+      '문서 목록을 불러오지 못했습니다',
+    );
+    await expect(page.locator('.journal-document-heading')).not.toContainText('0개');
+    await expect(page.locator('.journal-viewer .detail-body')).toHaveText('Body 1');
+    await page.getByRole('button', { name: '연결된 글로 이동', exact: true }).click();
+    await expect(page.getByRole('heading', { name: '연결된 글', exact: true })).toBeFocused();
+    await page.getByRole('button', { name: '작성 위치로 이동', exact: true }).click();
+    await expect(page.getByRole('button', { name: '새 글 작성', exact: true })).toBeFocused();
+  });
+}

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { expect } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
+import { validateJournalDetail } from './journal-detail.mjs';
 
 export async function validateDocuments({ page, context, origin, output, sql }) {
   page.setDefaultTimeout(15000);
@@ -41,6 +42,15 @@ export async function validateDocuments({ page, context, origin, output, sql }) 
   await expect(page).toHaveURL(origin + `/journals/${journal.id}`);
   await expect(page.locator('.journal-viewer')).toContainText(journal.body);
   await expect(page.getByRole('dialog')).toHaveCount(0);
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.screenshot({
+      path: path.join(output, `journal-detail-${width}.png`),
+      fullPage: true,
+    });
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await validateJournalDetail({ page, context, origin, output, post, json, project, journal });
   let releaseCreation;
   const creationHeld = new Promise((resolve) => {
     releaseCreation = resolve;
@@ -59,11 +69,32 @@ export async function validateDocuments({ page, context, origin, output, sql }) 
       response.request().method() === 'POST' &&
       response.url().endsWith(`/journals/${journal.id}/documents`),
   );
+  await page.evaluate(async () => {
+    const { JournalDocuments } = await import('/src/features/journal/documentCollection.ts');
+    const original = JournalDocuments.prototype.create;
+    JournalDocuments.prototype.create = function (...args) {
+      window.journalDetailTestStore = this;
+      JournalDocuments.prototype.create = original;
+      return original.apply(this, args);
+    };
+  });
   await page.getByRole('button', { name: '새 글 작성', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('button', { name: '초안 만드는 중…', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: '초안 만드는 중…', exact: true }).dispatchEvent('click');
   await expect.poll(() => creationRequests).toBe(1);
+  const refresh = page.waitForResponse((response) =>
+    response.url().endsWith(`/api/v2/journals/${journal.id}`),
+  );
+  await page.evaluate(() => window.journalDetailTestStore.invalidateJournals());
+  await refresh;
+  await expect(page.getByRole('button', { name: '초안 만드는 중…', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: '작성 위치로 이동', exact: true }).click();
+  await expect(page.locator('.journal-detail-create')).toBeFocused();
+  page.once('dialog', (dialog) => dialog.dismiss());
+  await page.getByRole('button', { name: '일지 목록', exact: true }).click();
+  await expect(page).toHaveURL(origin + `/journals/${journal.id}`);
+  assert.equal(creationRequests, 1);
   releaseCreation();
   const created = await json(await creation, 201);
   await page.unroute(creationPath);
@@ -389,8 +420,8 @@ export async function validateDocuments({ page, context, origin, output, sql }) 
   );
 
   // Browser file chooser invokes the actual multipart adapter.
-  await page.locator('.bn-editor').click();
-  await page.keyboard.press('Control+End');
+  await page.locator('.bn-editor [data-content-type="paragraph"]').last().click();
+  await page.keyboard.press('End');
   await page.keyboard.press('Enter');
   await page.keyboard.type('/file');
   await expect(page.getByRole('option').filter({ hasText: '파일' }).first()).toBeVisible();
@@ -505,11 +536,14 @@ export async function validateDocuments({ page, context, origin, output, sql }) 
   await page.getByRole('button', { name: '돌아가기', exact: true }).click();
   // Reload intentionally loses the in-memory parent context; deep links use /journals.
   await expect(page).toHaveURL(origin + '/journals');
-  await page.getByLabel('현재 화면 검색').fill('문서 연결');
+  await page.getByRole('button', { name: /검색 및 정렬/ }).click();
+  await page.getByRole('dialog').getByLabel('현재 화면 검색').fill('문서 연결');
+  await page.getByRole('dialog').getByRole('button', { name: '적용', exact: true }).click();
   await expect(page).toHaveURL(/q=/);
   const filteredUrl = page.url();
   await page.locator('.document-row').filter({ hasText: journal.title }).click();
   await expect(page.getByRole('button', { name: /블록 문서 저장 완료/ })).toBeVisible();
+  await expect(page.locator('.journal-document-row .badge')).toHaveText(['게시됨']);
   await page.getByRole('button', { name: /블록 문서 저장 완료/ }).click();
   await expect(page.locator('.bn-editor')).toBeVisible();
   await page.getByRole('button', { name: '돌아가기', exact: true }).click();
@@ -683,8 +717,37 @@ export async function validateDocuments({ page, context, origin, output, sql }) 
   await page.getByRole('button', { name: '일지 목록', exact: true }).click();
   await page.locator('.document-row').filter({ hasText: journal.title }).click();
   await expect(page.locator('[aria-label="일지 문서"] .document-row')).toHaveCount(20);
+  const loadedTitles = await page
+    .locator('[aria-label="일지 문서"] .document-row strong')
+    .allTextContents();
+  const ordered = await json(await context.request.get(origin + collection + '?limit=20'));
+  assert.deepEqual(
+    loadedTitles,
+    ordered.items.map((item) => item.title),
+  );
+  await page.route(`**${collection}?*`, (route) =>
+    new URL(route.request().url()).searchParams.has('cursor')
+      ? route.fulfill({ status: 500, json: { code: 'CURSOR_TEST_FAILURE' } })
+      : route.continue(),
+  );
   await page.getByRole('button', { name: '문서 더 불러오기', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('문서 목록을 불러오지 못했습니다');
+  await expect(page.locator('[aria-label="일지 문서"] .document-row')).toHaveCount(20);
+  await expect(page.locator('.journal-viewer')).toContainText(journal.body);
+  await expect(page.getByRole('button', { name: '새 글 작성', exact: true })).toBeEnabled();
+  await page.unroute(`**${collection}?*`);
+  await page.getByRole('button', { name: '다음 페이지 재시도', exact: true }).click();
   await expect(page.locator('[aria-label="일지 문서"] .document-row')).toHaveCount(21);
+  await expect(page.locator('h1')).not.toBeFocused();
+  await expect(page.locator('.journal-document-heading')).toContainText('21개');
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.evaluate(() => scrollTo(0, 0));
+    await page.screenshot({
+      path: path.join(output, `journal-detail-many-${width}.png`),
+      fullPage: true,
+    });
+  }
   for (const extra of extraDocuments)
     await json(await context.request.delete(origin + `/api/v2/documents/${extra.id}`, { headers }));
   assert.deepEqual(errors, []);
