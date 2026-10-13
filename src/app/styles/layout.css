@@ -205,24 +205,6 @@
   margin-top: auto;
   padding-top: 55px;
 }
-.workspace-note {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  padding: 15px;
-  background: var(--surface-subtle);
-  color: var(--muted);
-}
-.workspace-note strong {
-  display: block;
-  font-size: 12px;
-  color: var(--text);
-  margin: 10px 0 7px;
-}
-.workspace-note p {
-  font-size: 12px;
-  line-height: 1.9;
-  color: var(--muted);
-}
 .profile {
   display: flex;
   align-items: center;
@@ -473,18 +455,6 @@
 .home-toolbar > .search:has(input:disabled) {
   background: var(--surface-subtle);
   opacity: 0.6;
-}
-.page-footer {
-  display: flex;
-  justify-content: space-between;
-  padding: 25px 0;
-  color: var(--muted);
-  font-size: 12px;
-}
-.page-footer span:first-child {
-  display: flex;
-  gap: 6px;
-  align-items: center;
 }
 .nav-overlay {
   display: none;

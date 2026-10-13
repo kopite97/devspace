@@ -27,7 +27,7 @@ export function ProjectSummary({
         {project.scope && <Badge>{scopes[project.scope]}</Badge>}
       </div>
       <h2 data-section-index="01 / OVERVIEW">프로젝트 소개</h2>
-      <p className="project-description">{project.subtitle || '등록된 설명이 없어요.'}</p>
+      <p className="project-description">{project.subtitle || '설명 미등록'}</p>
       <dl className="project-facts">
         {category !== undefined && (
           <div className="project-category-fact">
@@ -41,7 +41,7 @@ export function ProjectSummary({
         </div>
         <div className="project-goal-fact">
           <dt>프로젝트 목표 메모</dt>
-          <dd>{project.milestone || '등록된 목표가 없어요.'}</dd>
+          <dd>{project.milestone || '목표 미등록'}</dd>
         </div>
         <div className="project-progress-fact">
           <dt>진행률 (직접 설정)</dt>
@@ -58,7 +58,7 @@ export function ProjectSummary({
                 {project.repositoryUrl}
               </a>
             ) : (
-              '등록된 유효한 저장소 주소가 없어요.'
+              '저장소 미등록'
             )}
           </dd>
         </div>

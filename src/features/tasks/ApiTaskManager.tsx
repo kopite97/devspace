@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Plus } from 'lucide-react';
 import { Button } from '../../shared/ui/controls';
 import { CancelledError, HttpError } from '../../shared/http/client';
 import type { TaskStore, TaskFilter } from './apiStore';
@@ -17,6 +18,7 @@ export function ApiTaskManager({
   memory,
   limit,
   onReset,
+  renderLayout,
 }: {
   store: TaskStore;
   filter: TaskFilter;
@@ -24,6 +26,7 @@ export function ApiTaskManager({
   memory: TaskMemory;
   limit?: number;
   onReset?: () => void;
+  renderLayout?: (action: ReactNode, content: ReactNode) => ReactNode;
 }) {
   const [editing, setEditing] = useState(!!memory.editor),
     [notice, setNotice] = useState('');
@@ -31,6 +34,7 @@ export function ApiTaskManager({
   useUnsavedChanges(pending.size > 0);
   const locks = useRef(new Set<string>()),
     alive = useRef(true);
+  const createRef = useRef<HTMLButtonElement>(null);
   const host = useRef<HTMLDivElement>(null),
     returnId = useRef<string | undefined>(undefined),
     returnRequested = useRef(false);
@@ -50,8 +54,8 @@ export function ApiTaskManager({
         ? container.querySelector<HTMLButtonElement>(
             `[data-task-id="${CSS.escape(returnId.current)}"] .task-title`,
           )
-        : container.querySelector<HTMLButtonElement>('.feature-actions button');
-      if (target) {
+        : createRef.current;
+      if (target?.isConnected && !target.disabled) {
         target.focus();
         returnRequested.current = false;
         return true;
@@ -65,7 +69,9 @@ export function ApiTaskManager({
     observer.observe(container, { childList: true, subtree: true });
     const timer = setTimeout(() => {
       observer.disconnect();
-      container.querySelector<HTMLButtonElement>('.feature-actions button')?.focus();
+      const fallback = createRef.current;
+      if (fallback?.isConnected && !fallback.disabled) fallback.focus();
+      else container.querySelector<HTMLElement>('[data-task-list-heading]')?.focus();
       returnRequested.current = false;
     }, 5000);
     return () => {
@@ -151,15 +157,30 @@ export function ApiTaskManager({
     },
     restore: (task) => void mutate(task),
   };
-  return (
+  const createAction = (
+    <Button ref={createRef} variant="primary" onClick={actions.create}>
+      <Plus size={14} />
+      태스크 추가
+    </Button>
+  );
+  const content = (
     <div ref={host}>
+      <h2 className="sr-only" tabIndex={-1} data-task-list-heading>
+        태스크 목록
+      </h2>
       {notice && (
         <p className="notice" role="alert">
           {notice}
           <Button onClick={() => store.invalidate()}>새로고침</Button>
         </p>
       )}
-      <TaskReads store={store} filter={filter} actions={actions} limit={limit} />
+      <TaskReads
+        store={store}
+        filter={filter}
+        actions={actions}
+        limit={limit}
+        createAction={renderLayout ? null : createAction}
+      />
       {editing && memory.editor && (
         <ApiTaskEditor
           store={store}
@@ -174,4 +195,5 @@ export function ApiTaskManager({
       )}
     </div>
   );
+  return renderLayout ? renderLayout(createAction, content) : content;
 }

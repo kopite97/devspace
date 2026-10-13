@@ -1,0 +1,190 @@
+[
+  {
+    "url": "/api/v1/project-categories",
+    "data": {
+      "name": "웹서비스"
+    },
+    "result": {
+      "id": "b55afab7-8248-4f88-81f7-62167f00ebbe",
+      "name": "웹서비스",
+      "revision": 1,
+      "createdAt": "2026-10-13T08:03:05.741149Z",
+      "updatedAt": "2026-10-13T08:03:05.741149Z"
+    }
+  },
+  {
+    "url": "/api/v2/projects",
+    "data": {
+      "name": "개인 개발 작업실",
+      "stack": "React · TypeScript",
+      "categoryId": "b55afab7-8248-4f88-81f7-62167f00ebbe"
+    },
+    "result": {
+      "id": "fc668103-66fb-46df-a2fe-906b33f46007",
+      "revision": 1,
+      "createdAt": "2026-10-13T08:03:05.806517Z",
+      "updatedAt": "2026-10-13T08:03:05.806517Z",
+      "name": "개인 개발 작업실",
+      "subtitle": "",
+      "stack": "React · TypeScript",
+      "progress": 0,
+      "currentMilestone": "",
+      "repositoryUrl": "",
+      "status": "active",
+      "categoryId": "b55afab7-8248-4f88-81f7-62167f00ebbe"
+    }
+  },
+  {
+    "url": "/api/v2/projects",
+    "data": {
+      "name": "서비스 운영 도구와 배포 자동화 프로젝트",
+      "stack": "Java",
+      "categoryId": "b55afab7-8248-4f88-81f7-62167f00ebbe"
+    },
+    "result": {
+      "id": "ef475a42-c955-4e0f-8b4c-17d41a2ad241",
+      "revision": 1,
+      "createdAt": "2026-10-13T08:03:05.849878Z",
+      "updatedAt": "2026-10-13T08:03:05.849878Z",
+      "name": "서비스 운영 도구와 배포 자동화 프로젝트",
+      "subtitle": "",
+      "stack": "Java",
+      "progress": 0,
+      "currentMilestone": "",
+      "repositoryUrl": "",
+      "status": "active",
+      "categoryId": "b55afab7-8248-4f88-81f7-62167f00ebbe"
+    }
+  },
+  {
+    "url": "/api/v2/tasks",
+    "data": {
+      "projectId": "fc668103-66fb-46df-a2fe-906b33f46007",
+      "title": "화면 배치 점검"
+    },
+    "result": {
+      "id": "bc63aead-9162-471a-aeab-bea5ab6374c8",
+      "revision": 1,
+      "createdAt": "2026-10-13T08:03:05.891055Z",
+      "updatedAt": "2026-10-13T08:03:05.891055Z",
+      "title": "화면 배치 점검",
+      "projectId": "fc668103-66fb-46df-a2fe-906b33f46007",
+      "projectName": "개인 개발 작업실",
+      "categoryId": "b55afab7-8248-4f88-81f7-62167f00ebbe",
+      "description": "",
+      "status": "todo",
+      "priority": "normal",
+      "tag": "",
+      "deletedAt": null
+    }
+  },
+  {
+    "url": "/api/v2/tasks",
+    "data": {
+      "projectId": "fc668103-66fb-46df-a2fe-906b33f46007",
+      "title": "검색 조건과 정렬 상태 유지 확인"
+    },
+    "result": {
+      "id": "dd9af943-6024-4bbe-bc80-7e0700c2f908",
+      "revision": 1,
+      "createdAt": "2026-10-13T08:03:05.924604Z",
+      "updatedAt": "2026-10-13T08:03:05.924604Z",
+      "title": "검색 조건과 정렬 상태 유지 확인",
+      "projectId": "fc668103-66fb-46df-a2fe-906b33f46007",
+      "projectName": "개인 개발 작업실",
+      "categoryId": "b55afab7-8248-4f88-81f7-62167f00ebbe",
+      "description": "",
+      "status": "todo",
+      "priority": "normal",
+      "tag": "",
+      "deletedAt": null
+    }
+  },
+  {
+    "url": "/api/v2/tasks",
+    "data": {
+      "projectId": "fc668103-66fb-46df-a2fe-906b33f46007",
+      "title": "긴 제목을 가진 작업의 모바일 줄바꿈과 상태 변경 확인"
+    },
+    "result": {
+      "id": "4e3a24ef-8d63-4edb-bfc4-615afd23c8e5",
+      "revision": 1,
+      "createdAt": "2026-10-13T08:03:05.951945Z",
+      "updatedAt": "2026-10-13T08:03:05.951945Z",
+      "title": "긴 제목을 가진 작업의 모바일 줄바꿈과 상태 변경 확인",
+      "projectId": "fc668103-66fb-46df-a2fe-906b33f46007",
+      "projectName": "개인 개발 작업실",
+      "categoryId": "b55afab7-8248-4f88-81f7-62167f00ebbe",
+      "description": "",
+      "status": "todo",
+      "priority": "normal",
+      "tag": "",
+      "deletedAt": null
+    }
+  },
+  {
+    "url": "/api/v2/journals",
+    "data": {
+      "projectId": "fc668103-66fb-46df-a2fe-906b33f46007",
+      "title": "개발일지 화면 구조 개선 기록",
+      "body": "화면 배치와 정보 순서를 점검합니다.",
+      "entryDate": "2026-10-13"
+    },
+    "result": {
+      "id": "076cb8f4-9f3f-4597-8587-64a53a19c30e",
+      "revision": 1,
+      "createdAt": "2026-10-13T08:03:05.985970Z",
+      "updatedAt": "2026-10-13T08:03:05.985970Z",
+      "title": "개발일지 화면 구조 개선 기록",
+      "projectId": "fc668103-66fb-46df-a2fe-906b33f46007",
+      "projectName": "개인 개발 작업실",
+      "categoryId": "b55afab7-8248-4f88-81f7-62167f00ebbe",
+      "body": "화면 배치와 정보 순서를 점검합니다.",
+      "entryDate": "2026-10-13"
+    }
+  },
+  {
+    "url": "/api/v2/milestones",
+    "data": {
+      "projectId": "fc668103-66fb-46df-a2fe-906b33f46007",
+      "title": "첫 번째 UI 정리"
+    },
+    "result": {
+      "id": "aa4df934-b2f4-4cb7-990f-07550d2f5102",
+      "revision": 1,
+      "createdAt": "2026-10-13T08:03:06.028613Z",
+      "updatedAt": "2026-10-13T08:03:06.028613Z",
+      "title": "첫 번째 UI 정리",
+      "projectId": "fc668103-66fb-46df-a2fe-906b33f46007",
+      "projectName": "개인 개발 작업실",
+      "categoryId": "b55afab7-8248-4f88-81f7-62167f00ebbe",
+      "dueDate": null,
+      "completed": false
+    }
+  },
+  {
+    "url": "/api/v2/links",
+    "data": {
+      "projectId": "fc668103-66fb-46df-a2fe-906b33f46007",
+      "label": "공식 개발 문서",
+      "url": "https://example.com/reference",
+      "description": "개발 중 자주 확인하는 문서"
+    },
+    "result": {
+      "item": {
+        "id": "41c00371-5c0a-4394-ab14-2654f8049fbd",
+        "revision": 1,
+        "createdAt": "2026-10-13T08:03:06.072092Z",
+        "updatedAt": "2026-10-13T08:03:06.072092Z",
+        "label": "공식 개발 문서",
+        "description": "개발 중 자주 확인하는 문서",
+        "url": "https://example.com/reference",
+        "projectId": "fc668103-66fb-46df-a2fe-906b33f46007",
+        "projectName": "개인 개발 작업실",
+        "categoryId": "b55afab7-8248-4f88-81f7-62167f00ebbe",
+        "position": 0
+      },
+      "collectionRevision": 1
+    }
+  }
+]

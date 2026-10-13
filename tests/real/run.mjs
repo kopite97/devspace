@@ -1,3 +1,4 @@
+import { validateWorkspaceLayout } from './workspace-layout.mjs';
 import { validateLinks } from './links.mjs';
 import { validateDocuments } from './documents.mjs';
 import { validateDashboard } from './dashboard.mjs';
@@ -30,6 +31,7 @@ const phase = process.argv.find((arg) => arg.startsWith('--projects='))?.split('
 const categoryPhase = process.argv.includes('--categories');
 const categoryOnlyPhase = process.argv.includes('--category-only');
 const documentPhase = process.argv.includes('--documents');
+const layoutPhase = process.argv.includes('--workspace-layout');
 const journalSearchPhase = process.argv.includes('--journal-search');
 const taskPhase = process.argv.find((arg) => arg.startsWith('--tasks='))?.split('=')[1];
 const journalPhase = process.argv.find((arg) => arg.startsWith('--journals='))?.split('=')[1];
@@ -360,10 +362,11 @@ try {
   if (milestonePhase)
     await validateMilestones({ page, context, origin, sql, alice, output, phase: milestonePhase });
   if (dashboardPhase) await validateDashboard({ page, context, origin, sql, alice, output });
+  if (journalSearchPhase) await validateJournalSearch({ page, context, origin, output });
   if (documentPhase) {
     for (const route of ['/', '/projects', '/tasks', '/journals', '/library']) {
       await page.goto(origin + route);
-      await expect(page.locator('.page-footer')).toBeVisible();
+      await expect(page.locator('.page-footer')).toHaveCount(0);
       await expect(page.locator('main .session-controls')).toHaveCount(0);
       await page.getByRole('button', { name: '프로필 메뉴', exact: true }).click();
       await expect(page.getByRole('button', { name: 'Log out', exact: true })).toHaveCount(1);
@@ -371,7 +374,7 @@ try {
     }
     await validateDocuments({ page, context, origin, sql, alice, output });
   }
-  if (journalSearchPhase) await validateJournalSearch({ page, context, origin, output });
+  if (layoutPhase) await validateWorkspaceLayout({ page, context, origin, output });
   const businessRowsBeforeAuth = sql(
     'select (select count(*) from projects)+(select count(*) from tasks)+(select count(*) from journals)+(select count(*) from milestones)+(select count(*) from links)',
   );
@@ -423,10 +426,7 @@ try {
     )[0],
     alice.id,
   );
-  await page.route('**/api/v1/auth/logout', async (route) => {
-    await route.abort('failed');
-    await page.unroute('**/api/v1/auth/logout');
-  });
+  await page.route('**/api/v1/auth/logout', (route) => route.abort('failed'), { times: 1 });
   await page.getByRole('button', { name: '프로필 메뉴', exact: true }).click();
   await page.getByRole('button', { name: 'Log out', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Retry logout', exact: true })).toBeVisible();

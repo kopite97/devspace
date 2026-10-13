@@ -36,21 +36,23 @@ export function LinkRows<T extends LinkRow>({
             <span className="link-copy">
               <strong>{l.label}</strong>
               <small>{l.desc}</small>
+              {onEdit && (
+                <span className="muted">
+                  {l.classification ??
+                    (l.scope === 'all'
+                      ? '공통'
+                      : l.scope === 'unity'
+                        ? 'Unity 개발'
+                        : l.scope === 'server'
+                          ? '서버 · 웹 개발'
+                          : '')}
+                </span>
+              )}
             </span>
             <ArrowUpRight size={15} />
           </a>
           {onEdit && (
             <div className="link-actions">
-              <span className="muted">
-                {l.classification ??
-                  (l.scope === 'all'
-                    ? '공통'
-                    : l.scope === 'unity'
-                      ? 'Unity 개발'
-                      : l.scope === 'server'
-                        ? '서버 · 웹 개발'
-                        : '')}
-              </span>
               <Button disabled={disabled} onClick={() => onEdit(l)} aria-label={`${l.label} 편집`}>
                 편집
               </Button>

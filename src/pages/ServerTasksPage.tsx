@@ -63,47 +63,50 @@ export function ServerTasksPage({
     return () => clearTimeout(timer);
   }, [search, query, category, onFilterNavigate]);
   return (
-    <PageScaffold
-      title="작업 보드"
-      description="프로젝트의 흐름을 정리하고 다음 작업을 준비하세요."
-      filters={
-        <div className="section-toolbar classification-toolbar workbench-filter-toolbar">
-          <CategoryFilterControl
-            value={category}
-            options={categories}
-            onChange={(value) => changeFilter(() => navigateFilter(value, search))}
-          />
-          <ProjectFilter
-            options={options}
-            value={projectId ?? ''}
-            onChange={(value) => changeFilter(() => navigateFilter(category, search, value))}
-          />
-          <label className="search">
-            <Search size={15} />
-            <input
-              aria-label="현재 화면 검색"
-              placeholder="항목 검색"
-              value={search}
-              onChange={(event) => changeFilter(() => setSearch(event.target.value))}
-            />
-          </label>
-        </div>
+    <ApiTaskManager
+      store={store}
+      options={options}
+      memory={memory}
+      onReset={() =>
+        changeFilter(() => {
+          setSearch('');
+          navigateFilter('all', '', '');
+        })
       }
-    >
-      <div className="content-panel task-page-content">
-        <ApiTaskManager
-          store={store}
-          options={options}
-          memory={memory}
-          onReset={() =>
-            changeFilter(() => {
-              setSearch('');
-              navigateFilter('all', '', '');
-            })
+      filter={{ category, projectId, query, projectStatus: 'all' }}
+      renderLayout={(action, content) => (
+        <PageScaffold
+          compact
+          actions={action}
+          title="작업 보드"
+          description="상태별로 작업을 확인하고 다음 할 일을 정하세요."
+          filters={
+            <div className="section-toolbar classification-toolbar workbench-filter-toolbar">
+              <CategoryFilterControl
+                value={category}
+                options={categories}
+                onChange={(value) => changeFilter(() => navigateFilter(value, search))}
+              />
+              <ProjectFilter
+                options={options}
+                value={projectId ?? ''}
+                onChange={(value) => changeFilter(() => navigateFilter(category, search, value))}
+              />
+              <label className="search">
+                <Search size={15} />
+                <input
+                  aria-label="현재 화면 검색"
+                  placeholder="항목 검색"
+                  value={search}
+                  onChange={(event) => changeFilter(() => setSearch(event.target.value))}
+                />
+              </label>
+            </div>
           }
-          filter={{ category, projectId, query, projectStatus: 'all' }}
-        />
-      </div>
-    </PageScaffold>
+        >
+          <div className="content-panel task-page-content">{content}</div>
+        </PageScaffold>
+      )}
+    />
   );
 }

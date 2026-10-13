@@ -24,7 +24,7 @@ test('journal edits retain drafts on failure, filter by date/project, and delete
   await page.getByLabel('일지 제목').fill('후속 관리 테스트');
   await page.getByRole('combobox', { name: '프로젝트', exact: true }).selectOption('forest');
   await page.getByLabel('작성일', { exact: true }).fill('2026-09-01');
-  await page.getByLabel('본문').fill('기존 본문');
+  await page.getByLabel('일지 설명').fill('기존 본문');
   await page.getByRole('button', { name: '일지 저장' }).click();
   await page.getByRole('button', { name: '후속 관리 테스트 수정', exact: true }).click();
   await page.getByLabel('일지 제목').fill('수정된 일지');
@@ -140,7 +140,7 @@ test('long journal content fits mobile and editing/deleting synchronizes home', 
   const title = '긴제목'.repeat(40);
   await page.getByLabel('일지 제목').fill(title);
   await page.getByRole('combobox', { name: '프로젝트', exact: true }).selectOption('forest');
-  await page.getByLabel('본문').fill('긴본문'.repeat(1000));
+  await page.getByLabel('일지 설명').fill('긴본문'.repeat(1000));
   await page.getByRole('button', { name: '일지 저장' }).click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('button', { name: `${title} 수정`, exact: true }).click();

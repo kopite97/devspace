@@ -38,7 +38,7 @@ export function JournalEditor({
           event.preventDefault();
           const project = projects.find((p) => p.id === projectId);
           if (!title.trim() || !body.trim() || !project) {
-            setError('제목, 프로젝트, 본문을 입력해 주세요.');
+            setError('제목, 프로젝트, 일지 설명을 입력해 주세요.');
             return;
           }
           if (
@@ -76,14 +76,15 @@ export function JournalEditor({
           <Field label="작성일">
             <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
           </Field>
-          <Field label="본문">
+          <Field label="일지 설명">
             <textarea
+              className="journal-description-input"
               required
               maxLength={20000}
-              rows={10}
+              rows={3}
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="어떤 작업을 했나요? 다음에 할 일도 남겨 보세요."
+              placeholder="이 일지에서 다루는 작업이나 주제를 간단히 소개해 주세요."
             />
           </Field>
         </div>

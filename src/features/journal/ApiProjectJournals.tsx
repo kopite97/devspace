@@ -38,11 +38,13 @@ export function ApiProjectJournals({
   );
   return (
     <section className="journal-surface content-panel" aria-label="프로젝트 최근 일지">
-      <div className="panel-heading">
-        <h2 data-section-index="04 / JOURNAL">최근 개발 일지</h2>
-        <p>이 프로젝트의 최신 일지 최대 3건입니다.</p>
+      <div className="project-section-toolbar">
+        <div className="panel-heading">
+          <h2 data-section-index="04 / JOURNAL">최근 개발 일지</h2>
+          <p>이 프로젝트의 최신 일지 최대 3건입니다.</p>
+        </div>
+        {action}
       </div>
-      {action && <div className="feature-actions">{action}</div>}
       {notice && (
         <p className="notice" role="status">
           {notice}
@@ -52,7 +54,6 @@ export function ApiProjectJournals({
         store={store}
         projectId={project.id}
         limit={3}
-        emptyAction={action}
         onOpenJournal={onOpenJournal}
       />
       {editing && memory.editor?.target === target && (

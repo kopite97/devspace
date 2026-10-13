@@ -100,7 +100,7 @@ export function ProjectDetailView(props: DetailProps) {
     serverProjectId(props.id);
   } catch {
     return (
-      <ProjectDetailLayout title="프로젝트를 찾을 수 없어요" onBack={props.onBack}>
+      <ProjectDetailLayout compact title="프로젝트를 찾을 수 없어요" onBack={props.onBack}>
         <p className="notice" role="alert">
           잘못된 프로젝트 주소입니다. 목록에서 프로젝트를 선택해 주세요.
         </p>
@@ -117,6 +117,7 @@ function VerifiedDetail({ store, id, children, actions, onBack, category }: Deta
   const verified = state.status === 'ready' && !state.stale;
   return (
     <ProjectDetailLayout
+      compact
       title={
         project?.name ??
         (state.status === 'loading' ? '프로젝트를 불러오는 중…' : '프로젝트를 찾을 수 없어요')

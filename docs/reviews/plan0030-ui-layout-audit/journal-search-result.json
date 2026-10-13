@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "realSession": true,
+  "mockedBusinessResponses": false,
+  "combinedConditions": 6,
+  "applyRequests": 1,
+  "cancelResetReloadHistory": true,
+  "widths": [1440, 390, 320],
+  "nativeZoomPercent": 200,
+  "pageErrors": []
+}

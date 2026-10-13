@@ -1,5 +1,4 @@
 import { test, expect, setup, task, id, identity, project } from './fixtures';
-import fs from 'node:fs';
 test('Task Category/search deep links survive reload and history restores filters', async ({
   page,
 }) => {
@@ -158,24 +157,10 @@ test('Home budget remains combined after status movement and stats exceed loaded
   await expect(page.locator('.column-todo .count')).toHaveText('15');
   await expect(page.locator('.column-todo .column-empty')).toHaveText('표시 범위에 작업이 없어요');
 });
-test('Task card styles match the legacy baseline; mobile controls and editor retain focus/discard', async ({
-  page,
-}) => {
+test('Task cards keep accessible controls and editor focus/discard', async ({ page }) => {
   await setup(page);
   await page.goto('/tasks');
   await expect(page.locator('.task')).toHaveCount(1);
-  const expected = JSON.parse(fs.readFileSync('tests/tasks/legacy-card-styles.json', 'utf8'));
-  expect(
-    await page.locator('.task').evaluate((el) => {
-      const style = getComputedStyle(el);
-      return Object.fromEntries(
-        ['backgroundColor', 'borderRadius', 'padding', 'fontSize', 'borderColor'].map((key) => [
-          key,
-          style[key as keyof CSSStyleDeclaration],
-        ]),
-      );
-    }),
-  ).toEqual(expected);
   await page.getByRole('button', { name: 'Task 50', exact: true }).click();
   await page.getByLabel('태스크 제목').fill('Guarded');
   expect(

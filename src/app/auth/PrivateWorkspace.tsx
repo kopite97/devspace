@@ -245,15 +245,21 @@ export function PrivateWorkspace({
           onNavigate={onNavigate}
           memory={memory}
           renderTasks={(id) => (
-            <section className="task-surface content-panel" aria-label="프로젝트 작업">
-              <ProjectTaskHeading overview={overview} projectId={id} />
-              <ApiTaskManager
-                store={tasks}
-                options={options}
-                memory={taskMemory}
-                filter={{ category: 'all', projectId: id, query: '', projectStatus: 'all' }}
-              />
-            </section>
+            <ApiTaskManager
+              store={tasks}
+              options={options}
+              memory={taskMemory}
+              filter={{ category: 'all', projectId: id, query: '', projectStatus: 'all' }}
+              renderLayout={(action, content) => (
+                <section className="task-surface content-panel" aria-label="프로젝트 작업">
+                  <div className="project-section-toolbar">
+                    <ProjectTaskHeading overview={overview} projectId={id} />
+                    {action}
+                  </div>
+                  {content}
+                </section>
+              )}
+            />
           )}
           renderJournals={(project) => (
             <ApiProjectJournals
@@ -271,11 +277,15 @@ export function PrivateWorkspace({
           )}
           renderMilestones={(id) => (
             <section className="content-panel milestone-surface" aria-label="프로젝트 마일스톤">
-              <div className="panel-heading">
-                <h2 data-section-index="02 / MILESTONES">마일스톤</h2>
-                <p>목표와 기한을 관리하세요.</p>
-              </div>
               <ApiMilestoneList
+                renderHeader={(action) => (
+                  <div className="project-section-toolbar">
+                    <div className="panel-heading">
+                      <h2 data-section-index="02 / MILESTONES">마일스톤</h2>
+                    </div>
+                    {action}
+                  </div>
+                )}
                 store={milestones}
                 options={milestoneOptions}
                 memory={milestoneMemory}

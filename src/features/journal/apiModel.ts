@@ -106,7 +106,7 @@ export function validateJournalDraft(draft: JournalDraft): Record<string, string
   if (!draft.title.trim() || draft.title.length > 120)
     errors.title = '제목은 1–120자로 입력해 주세요.';
   if (!draft.body.trim() || draft.body.length > 20000)
-    errors.body = '본문은 1–20000자로 입력해 주세요.';
+    errors.body = '일지 설명은 1–20000자로 입력해 주세요.';
   try {
     uuid(draft.projectId);
   } catch {

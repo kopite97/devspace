@@ -1,4 +1,3 @@
-import { Code2 } from 'lucide-react';
 import { type ReactNode } from 'react';
 import { Button, Modal } from '../../shared/ui/controls';
 import { useMobileNavigation } from './useMobileNavigation';
@@ -11,7 +10,6 @@ export function AppLayout({
   renderTopbar,
   detail,
   closeDetail = () => {},
-  hasFooter = true,
   sessionNotice,
 }: {
   children: ReactNode;
@@ -20,7 +18,6 @@ export function AppLayout({
   renderTopbar: (menu: MobileNavigation) => ReactNode;
   detail?: { title: string; body: string } | null;
   closeDetail?: () => void;
-  hasFooter?: boolean;
   sessionNotice?: ReactNode;
 }) {
   const menu = useMobileNavigation(entryKey);
@@ -41,15 +38,6 @@ export function AppLayout({
         <main>
           {sessionNotice}
           {children}
-          {hasFooter && (
-            <footer className="page-footer">
-              <span>
-                <Code2 size={14} />
-                Built for your next idea.
-              </span>
-              <span>devspace. · 나만의 개발 작업실</span>
-            </footer>
-          )}
         </main>
       </div>
       {detail && (

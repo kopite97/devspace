@@ -1,4 +1,4 @@
-import { Code2, Settings2, Sparkles } from 'lucide-react';
+import { Code2, Settings2 } from 'lucide-react';
 import { navigationItems as navItems, type PageId } from '../navigation';
 import { Badge } from '../../shared/ui/controls';
 import type { Ref, ReactNode } from 'react';
@@ -113,15 +113,6 @@ export function SidebarView({
         </>
       )}
       <div className="sidebar-bottom">
-        <div className="workspace-note">
-          <Sparkles size={18} />
-          <strong>작은 기록, 더 나은 개발</strong>
-          <p>
-            아이디어부터 배포까지,
-            <br />
-            나만의 속도로 쌓아가세요.
-          </p>
-        </div>
         <button className="profile" onClick={onProfile}>
           <span className="avatar">{avatar}</span>
           <span>

@@ -1,0 +1,209 @@
+{
+  "baseline": "c58a0b3987ff93e056ee34c5ca7699c96acf707f",
+  "suites": {
+    "projects": {
+      "initial": {
+        "summary": ["3 failed", "29 passed (48.9s)"],
+        "failures": [
+          "tests\\projects\\overview.spec.ts:47:1 › failed counters never become zero, while valid zero snapshots remain usable",
+          "tests\\projects\\session.spec.ts:2:1 › same-account verification hides and restores draft; changed account discards it",
+          "tests\\projects\\session.spec.ts:112:1 › current mutation 401 clears private state immediately ───"
+        ]
+      },
+      "baseline": {
+        "summary": ["3 failed", "29 passed (47.9s)"],
+        "failures": [
+          "tests\\projects\\overview.spec.ts:47:1 › failed counters never become zero, while valid zero snapshots remain usable",
+          "tests\\projects\\session.spec.ts:2:1 › same-account verification hides and restores draft; changed account discards it",
+          "tests\\projects\\session.spec.ts:112:1 › current mutation 401 clears private state immediately ───"
+        ]
+      },
+      "verified": {
+        "summary": ["31 passed (22.7s)"],
+        "failures": []
+      },
+      "additional": {
+        "summary": ["long content responsive test passed; Projects total 32 unique passing cases"],
+        "log": "layout-target-projects.log"
+      }
+    },
+    "tasks": {
+      "initial": {
+        "summary": ["4 failed", "17 passed (47.0s)"],
+        "failures": [
+          "tests\\tasks\\failures.spec.ts:71:3 › current Task AUTH_REQUIRED uses the proper auth boundary ───",
+          "tests\\tasks\\failures.spec.ts:71:3 › current Task ACCOUNT_DISABLED uses the proper auth boundary",
+          "tests\\tasks\\recovery.spec.ts:135:1 › Home budget remains combined after status movement and stats exceed loaded rows",
+          "tests\\tasks\\recovery.spec.ts:161:1 › Task card styles match the legacy baseline; mobile controls and editor retain focus/discard"
+        ]
+      },
+      "baseline": {
+        "summary": ["4 failed", "17 passed (21.3s)"],
+        "failures": [
+          "tests\\tasks\\failures.spec.ts:71:3 › current Task AUTH_REQUIRED uses the proper auth boundary ───",
+          "tests\\tasks\\failures.spec.ts:71:3 › current Task ACCOUNT_DISABLED uses the proper auth boundary",
+          "tests\\tasks\\recovery.spec.ts:135:1 › Home budget remains combined after status movement and stats exceed loaded rows",
+          "tests\\tasks\\recovery.spec.ts:161:1 › Task card styles match the legacy baseline; mobile controls and editor retain focus/discard"
+        ]
+      },
+      "verified": {
+        "summary": ["20 passed (15.2s)"],
+        "failures": []
+      }
+    },
+    "links": {
+      "initial": {
+        "summary": ["4 failed", "12 passed (1.2m)"],
+        "failures": [
+          "tests\\links\\link.spec.ts:257:1 › Home stays read-only all-scope and has no artificial limit ────",
+          "tests\\links\\link.spec.ts:266:1 › desktop mobile landscape visual and keyboard parity ───────────",
+          "tests\\links\\link.spec.ts:315:1 › empty Library keeps one header create action and toolbar reset",
+          "tests\\links\\recovery.spec.ts:2:1 › same identity recovery retains Link draft and account change discards it"
+        ]
+      },
+      "baseline": {
+        "summary": ["3 failed", "13 passed (16.9s)"],
+        "failures": [
+          "tests\\links\\link.spec.ts:257:1 › Home stays read-only all-scope and has no artificial limit ────",
+          "tests\\links\\link.spec.ts:266:1 › desktop mobile landscape visual and keyboard parity ───────────",
+          "tests\\links\\recovery.spec.ts:2:1 › same identity recovery retains Link draft and account change discards it"
+        ]
+      },
+      "verified": {
+        "summary": ["14 passed (12.3s)"],
+        "failures": []
+      }
+    },
+    "dashboard": {
+      "initial": {
+        "summary": ["9 passed (15.1s)"],
+        "failures": []
+      },
+      "baseline": {
+        "summary": ["9 passed (9.1s)"],
+        "failures": []
+      },
+      "verified": null
+    },
+    "journals": {
+      "initial": {
+        "summary": ["1 failed", "33 passed (40.5s)"],
+        "failures": [
+          "tests\\journals\\project-create.spec.ts:4:3 › Project detail creates with locked project and refreshes recent list (empty true)"
+        ]
+      },
+      "baseline": null,
+      "verified": null,
+      "final": {
+        "summary": ["34 passed"],
+        "log": "layout-final-journals.log"
+      }
+    },
+    "milestones": {
+      "initial": {
+        "summary": ["2 failed", "11 passed (26.1s)"],
+        "failures": [
+          "tests\\milestones\\integration.spec.ts:236:1 › Home preserves bounded unity/open/two presentation and only navigates for management",
+          "tests\\milestones\\recovery.spec.ts:15:1 › same identity revalidation preserves drafts and changed identity clears them"
+        ]
+      },
+      "baseline": {
+        "summary": ["2 failed", "11 passed (13.2s)"],
+        "failures": [
+          "tests\\milestones\\integration.spec.ts:236:1 › Home preserves bounded unity/open/two presentation and only navigates for management",
+          "tests\\milestones\\recovery.spec.ts:15:1 › same identity revalidation preserves drafts and changed identity clears them"
+        ]
+      },
+      "verified": {
+        "summary": ["11 passed (8.0s)"],
+        "failures": []
+      }
+    },
+    "auth": {
+      "initial": {
+        "summary": ["19 failed", "3 passed (4.9m)"],
+        "failures": [
+          "tests\\auth\\bootstrap.spec.ts:13:1 › checking gates private content; StrictMode, deep links, reload and account revalidation",
+          "tests\\auth\\bootstrap.spec.ts:70:3 › bootstrap 401 {\"code\":\"AUTH_REQUIRED\"} ─────────────────────",
+          "tests\\auth\\bootstrap.spec.ts:70:3 › bootstrap 403 {\"code\":\"ACCOUNT_DISABLED\"} ──────────────────",
+          "tests\\auth\\bootstrap.spec.ts:70:3 › bootstrap 403 {\"code\":\"UNKNOWN\"} ───────────────────────────",
+          "tests\\auth\\bootstrap.spec.ts:70:3 › bootstrap 503 {\"requestId\":\"req-safe\"} ─────────────────────",
+          "tests\\auth\\bootstrap.spec.ts:70:3 › bootstrap 200 {\"invalid\":true} ─────────────────────────────",
+          "tests\\auth\\bootstrap.spec.ts:78:1 › HTML success is a retryable protocol error, never a demo fallback",
+          "tests\\auth\\bootstrap.spec.ts:93:1 › login is explicit navigation with safe intent and fixed consumed failure notice",
+          "tests\\auth\\boundary.spec.ts:2:1 › default entry never accesses prototype storage or business APIs",
+          "tests\\auth\\session.spec.ts:18:1 › pagehide retires private DOM before restoration; focus fallback revalidates a changed account",
+          "tests\\auth\\session.spec.ts:48:1 › pending CSRF blocks duplicate logout; bodyless success clears identity",
+          "tests\\auth\\session.spec.ts:81:1 › CSRF recovery requires explicit retry and repeated rejection stops refresh loops",
+          "tests\\auth\\session.spec.ts:111:3 › offline logout hides identity during reconciliation and offers explicit retry",
+          "tests\\auth\\session.spec.ts:111:3 › malformed logout hides identity during reconciliation and offers explicit retry",
+          "tests\\auth\\session.spec.ts:148:3 › ambiguous logout reconciliation 401 ─────────────────────────",
+          "tests\\auth\\session.spec.ts:148:3 › ambiguous logout reconciliation 503 ─────────────────────────",
+          "tests\\auth\\session.spec.ts:171:1 › known account switch cancels pending token and never sends the old logout",
+          "tests\\auth\\session.spec.ts:210:3 › two-tab logout propagation; BroadcastChannel true ───────────",
+          "tests\\auth\\session.spec.ts:210:3 › two-tab logout propagation; BroadcastChannel false ──────────"
+        ]
+      },
+      "baseline": {
+        "summary": ["19 failed", "3 passed (4.9m)"],
+        "failures": [
+          "tests\\auth\\bootstrap.spec.ts:13:1 › checking gates private content; StrictMode, deep links, reload and account revalidation",
+          "tests\\auth\\bootstrap.spec.ts:70:3 › bootstrap 401 {\"code\":\"AUTH_REQUIRED\"} ─────────────────────",
+          "tests\\auth\\bootstrap.spec.ts:70:3 › bootstrap 403 {\"code\":\"ACCOUNT_DISABLED\"} ──────────────────",
+          "tests\\auth\\bootstrap.spec.ts:70:3 › bootstrap 403 {\"code\":\"UNKNOWN\"} ───────────────────────────",
+          "tests\\auth\\bootstrap.spec.ts:70:3 › bootstrap 503 {\"requestId\":\"req-safe\"} ─────────────────────",
+          "tests\\auth\\bootstrap.spec.ts:70:3 › bootstrap 200 {\"invalid\":true} ─────────────────────────────",
+          "tests\\auth\\bootstrap.spec.ts:78:1 › HTML success is a retryable protocol error, never a demo fallback",
+          "tests\\auth\\bootstrap.spec.ts:93:1 › login is explicit navigation with safe intent and fixed consumed failure notice",
+          "tests\\auth\\boundary.spec.ts:2:1 › default entry never accesses prototype storage or business APIs",
+          "tests\\auth\\session.spec.ts:18:1 › pagehide retires private DOM before restoration; focus fallback revalidates a changed account",
+          "tests\\auth\\session.spec.ts:48:1 › pending CSRF blocks duplicate logout; bodyless success clears identity",
+          "tests\\auth\\session.spec.ts:81:1 › CSRF recovery requires explicit retry and repeated rejection stops refresh loops",
+          "tests\\auth\\session.spec.ts:111:3 › offline logout hides identity during reconciliation and offers explicit retry",
+          "tests\\auth\\session.spec.ts:111:3 › malformed logout hides identity during reconciliation and offers explicit retry",
+          "tests\\auth\\session.spec.ts:148:3 › ambiguous logout reconciliation 401 ─────────────────────────",
+          "tests\\auth\\session.spec.ts:148:3 › ambiguous logout reconciliation 503 ─────────────────────────",
+          "tests\\auth\\session.spec.ts:171:1 › known account switch cancels pending token and never sends the old logout",
+          "tests\\auth\\session.spec.ts:210:3 › two-tab logout propagation; BroadcastChannel true ───────────",
+          "tests\\auth\\session.spec.ts:210:3 › two-tab logout propagation; BroadcastChannel false ──────────"
+        ]
+      },
+      "verified": null
+    },
+    "shell": {
+      "initial": {
+        "summary": ["11 failed", "6 passed (40.5s)"],
+        "failures": [
+          "tests\\shell\\fonts.spec.ts:25:3 › global webfont renders across routes and controls 1440 ────────",
+          "tests\\shell\\fonts.spec.ts:25:3 › global webfont renders across routes and controls 390 ─────────",
+          "tests\\shell\\layout.spec.ts:44:3 › direct visit and refresh keep / in the authenticated application layout",
+          "tests\\shell\\layout.spec.ts:76:3 › sidebar navigation and history preserve the shell (desktop) ──",
+          "tests\\shell\\layout.spec.ts:76:3 › sidebar navigation and history preserve the shell (mobile) ───",
+          "tests\\shell\\layout.spec.ts:150:3 › original shell visual parity 1440x1000 ──────────────────────",
+          "tests\\shell\\layout.spec.ts:150:3 › original shell visual parity 390x844 ────────────────────────",
+          "tests\\shell\\layout.spec.ts:150:3 › original shell visual parity 844x390 ────────────────────────",
+          "tests\\shell\\projects.spec.ts:46:3 › original Project presentation parity 1440x1000 ─────────────",
+          "tests\\shell\\projects.spec.ts:46:3 › original Project presentation parity 390x844 ───────────────",
+          "tests\\shell\\projects.spec.ts:46:3 › original Project presentation parity 844x390 ───────────────"
+        ]
+      },
+      "baseline": {
+        "summary": ["11 failed", "6 passed (3.2m)"],
+        "failures": [
+          "tests\\shell\\fonts.spec.ts:25:3 › global webfont renders across routes and controls 1440 ────────",
+          "tests\\shell\\fonts.spec.ts:25:3 › global webfont renders across routes and controls 390 ─────────",
+          "tests\\shell\\layout.spec.ts:44:3 › direct visit and refresh keep / in the authenticated application layout",
+          "tests\\shell\\layout.spec.ts:76:3 › sidebar navigation and history preserve the shell (desktop) ──",
+          "tests\\shell\\layout.spec.ts:76:3 › sidebar navigation and history preserve the shell (mobile) ───",
+          "tests\\shell\\layout.spec.ts:150:3 › original shell visual parity 1440x1000 ──────────────────────",
+          "tests\\shell\\layout.spec.ts:150:3 › original shell visual parity 390x844 ────────────────────────",
+          "tests\\shell\\layout.spec.ts:150:3 › original shell visual parity 844x390 ────────────────────────",
+          "tests\\shell\\projects.spec.ts:46:3 › original Project presentation parity 1440x1000 ─────────────",
+          "tests\\shell\\projects.spec.ts:46:3 › original Project presentation parity 390x844 ───────────────",
+          "tests\\shell\\projects.spec.ts:46:3 › original Project presentation parity 844x390 ───────────────"
+        ]
+      },
+      "verified": null
+    }
+  }
+}

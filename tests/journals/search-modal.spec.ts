@@ -265,7 +265,7 @@ test('a real recovered draft can reject filter navigation without losing modal i
   await page.goto('/journals');
   await page.getByRole('button', { name: '일지 작성', exact: true }).click();
   await page.getByLabel('일지 제목').fill('보존할 초안');
-  await page.getByLabel('본문').fill('세션 복구 후에도 남길 내용');
+  await page.getByLabel('일지 설명').fill('세션 복구 후에도 남길 내용');
   // Retiring and restoring the same session retains JournalMemory but remounts the page.
   await page.evaluate(() =>
     window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })),

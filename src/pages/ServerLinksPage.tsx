@@ -63,42 +63,47 @@ export function ServerLinksPage({
     return () => clearTimeout(timer);
   }, [search, query, category, onFilterNavigate]);
   return (
-    <PageScaffold
-      title="자료실"
-      description="프로젝트의 흐름을 정리하고 다음 작업을 준비하세요."
-      filters={
-        <div className="section-toolbar classification-toolbar workbench-filter-toolbar">
-          <CategoryFilterControl
-            value={category}
-            options={categories}
-            onChange={(value) => changeFilter(() => navigateFilter(value, search))}
-          />
-          <ProjectFilter
-            options={options}
-            value={projectId ?? ''}
-            onChange={(value) => changeFilter(() => navigateFilter(category, search, value))}
-          />
-          <label className="search">
-            <Search size={15} />
-            <input
-              aria-label="현재 화면 검색"
-              placeholder="항목 검색"
-              value={search}
-              onChange={(event) => changeFilter(() => setSearch(event.target.value))}
-            />
-          </label>
-        </div>
-      }
-    >
-      <ApiLinks
-        categories={categories}
-        options={options}
-        key={category + query + projectId}
-        store={store}
-        filter={{ category, projectId, query }}
-        memory={memory}
-        onReset={() => navigateFilter('all', '', '')}
-      />
-    </PageScaffold>
+    <ApiLinks
+      categories={categories}
+      options={options}
+      key={category + query + projectId}
+      store={store}
+      filter={{ category, projectId, query }}
+      memory={memory}
+      onReset={() => navigateFilter('all', '', '')}
+      renderLayout={(action, content) => (
+        <PageScaffold
+          compact
+          actions={action}
+          title="자료실"
+          description="프로젝트에 필요한 문서와 개발 도구를 모아 두세요."
+          filters={
+            <div className="section-toolbar classification-toolbar workbench-filter-toolbar">
+              <CategoryFilterControl
+                value={category}
+                options={categories}
+                onChange={(value) => changeFilter(() => navigateFilter(value, search))}
+              />
+              <ProjectFilter
+                options={options}
+                value={projectId ?? ''}
+                onChange={(value) => changeFilter(() => navigateFilter(category, search, value))}
+              />
+              <label className="search">
+                <Search size={15} />
+                <input
+                  aria-label="현재 화면 검색"
+                  placeholder="항목 검색"
+                  value={search}
+                  onChange={(event) => changeFilter(() => setSearch(event.target.value))}
+                />
+              </label>
+            </div>
+          }
+        >
+          {content}
+        </PageScaffold>
+      )}
+    />
   );
 }

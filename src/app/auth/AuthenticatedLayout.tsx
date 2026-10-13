@@ -41,7 +41,6 @@ export function AuthenticatedLayout({
       entryKey={url.pathname + url.search}
       detail={profile ? { title: displayName, body: workspaceName } : null}
       closeDetail={() => setProfile(false)}
-      hasFooter={location.notFound || !location.pathname.startsWith('/documents/')}
       sessionNotice={sessionNotice}
       renderSidebar={(menu) => (
         <SidebarView

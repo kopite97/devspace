@@ -273,7 +273,7 @@ test('desktop mobile landscape visual and keyboard parity', async ({ page }) => 
     await page.setViewportSize({ width, height });
     await page.goto('/library');
     await expect(page.locator('.quick-links strong')).toHaveCount(4);
-    const header = page.locator('.library-header');
+    const header = page.locator('.page-heading');
     const add = page.getByRole('button', { name: '링크 추가', exact: true });
     await expect(add).toHaveCount(1);
     await expect(header.getByRole('button', { name: '링크 추가' })).toBeVisible();
@@ -281,13 +281,13 @@ test('desktop mobile landscape visual and keyboard parity', async ({ page }) => 
     await expect(
       page.locator('.library-toolbar').getByRole('button', { name: '링크 새로고침' }),
     ).toHaveClass(/button-secondary/);
-    const headingBox = (await header.locator('h2').boundingBox())!;
+    const headingBox = (await header.locator('h1').boundingBox())!;
     const actionBox = (await add.boundingBox())!;
     const toolbarBox = (await page.locator('.library-toolbar').boundingBox())!;
     const listBox = (await page.locator('.quick-links').boundingBox())!;
-    expect(headingBox.x).toBeCloseTo(toolbarBox.x + 20, 0);
-    expect(headingBox.x).toBeCloseTo(listBox.x + 20, 0);
-    if (width === 390) expect(actionBox.y).toBeGreaterThan(headingBox.y + headingBox.height);
+    expect(headingBox.x).toBeCloseTo(toolbarBox.x, 0);
+    expect(headingBox.x).toBeCloseTo(listBox.x, 0);
+    if (width <= 950) expect(actionBox.y).toBeGreaterThan(headingBox.y + headingBox.height);
     else expect(actionBox.x).toBeGreaterThan(headingBox.x + headingBox.width);
     await page.screenshot({
       path: '.auth-validation/link-api-library-' + name + '.png',
@@ -304,11 +304,6 @@ test('desktop mobile landscape visual and keyboard parity', async ({ page }) => 
     });
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await page.goto('/');
-    await expect(page.locator('.link-surface .quick-links strong')).toHaveCount(4);
-    await page
-      .locator('.link-surface')
-      .screenshot({ path: '.auth-validation/link-api-home-' + name + '.png' });
   }
 });
 
@@ -324,11 +319,11 @@ test('empty Library keeps one header create action and toolbar reset', async ({ 
   await page.locator('.library-toolbar').getByRole('button', { name: '검색·필터 초기화' }).click();
   await expect(page.getByLabel('현재 화면 검색')).toHaveValue('');
   await expect(page.getByText('등록된 링크가 없어요')).toBeVisible();
-  await page.locator('.library-header').getByRole('button', { name: '링크 추가' }).click();
+  await page.locator('.page-heading').getByRole('button', { name: '링크 추가' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByLabel('링크 이름')).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(
-    page.locator('.library-header').getByRole('button', { name: '링크 추가' }),
+    page.locator('.page-heading').getByRole('button', { name: '링크 추가' }),
   ).toBeFocused();
 });

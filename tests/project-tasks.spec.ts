@@ -34,7 +34,7 @@ test('project creation, rename and archive preserve task and journal relationshi
   await page
     .getByRole('combobox', { name: '프로젝트', exact: true })
     .selectOption({ label: '새 게임' });
-  await page.getByLabel('본문').fill('점프 프로토타입을 시작했습니다.');
+  await page.getByLabel('일지 설명').fill('점프 프로토타입을 시작했습니다.');
   await page.getByRole('button', { name: '일지 저장' }).click();
   await openProjects(page);
   await page.locator('.project-row').filter({ hasText: '새 게임' }).click();

@@ -359,6 +359,16 @@ export function WidgetDataContent({ store, tasks, projects, widget, onNavigate }
         위젯 데이터가 최신 설정과 맞지 않습니다.
       </p>
     );
+  if (state.data.availability === 'unavailable' && state.data.problem?.code === 'NOT_CONFIGURED')
+    return (
+      <div className="muted">
+        <p>아직 연동이 설정되지 않았어요.</p>
+        <details>
+          <summary>상태 정보</summary>
+          <p>NOT_CONFIGURED</p>
+        </details>
+      </div>
+    );
   if (state.data.availability === 'unavailable')
     return (
       <p className="notice" role="alert">

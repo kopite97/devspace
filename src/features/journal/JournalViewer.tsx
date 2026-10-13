@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowDown } from 'lucide-react';
 import { useQuery } from '../../shared/http/query';
 import { Button } from '../../shared/ui/controls';
 import type { JournalDocuments } from './documentCollection';
+import { JournalDescription } from './JournalDescription';
 
 function focusAndScroll(element: HTMLElement | null) {
   if (!element) return;
@@ -90,9 +91,7 @@ export function JournalViewer({
         <p role="status">일지를 불러오는 중…</p>
       ) : (
         <div className="journal-detail-grid">
-          <article className="journal-viewer">
-            <p className="detail-body">{journal.body}</p>
-          </article>
+          <JournalDescription key={id} description={journal.body} />
           {renderDocuments({
             headingRef: documentsHeading,
             onGoToCreate: () =>

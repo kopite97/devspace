@@ -120,7 +120,7 @@ export async function validateJournalDetail({
     const columns = await page
       .locator('.journal-detail-grid')
       .evaluate((e) => getComputedStyle(e).gridTemplateColumns.split(' ').length);
-    assert.equal(columns, width >= 1200 ? 2 : 1);
+    assert.equal(columns, 1);
     assert(await section.evaluate((e) => e.scrollWidth <= e.clientWidth));
     await page.evaluate(() => scrollTo(0, 0));
     await page.screenshot({ path: path.join(output, `journal-detail-long-${width}.png`) });

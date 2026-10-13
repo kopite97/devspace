@@ -117,10 +117,11 @@ function ServerProjectList({ store, categories, overview, url, onNavigate, memor
       }
       onCreate={() => setCreating(true)}
       scaffold={{
+        compact: true,
         title: '프로젝트',
-        description: '프로젝트의 흐름을 정리하고 다음 작업을 준비하세요.',
+        description: '프로젝트별 진행 상황과 연결된 작업을 확인하세요.',
         filters: (
-          <div className="section-toolbar project-list-toolbar">
+          <div className="section-toolbar project-list-toolbar workbench-filter-toolbar">
             <div className="project-classification-actions">
               <CategoryFilterControl
                 value={filter.category}

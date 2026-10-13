@@ -186,3 +186,24 @@
   gap: 8px 12px;
   overflow-wrap: anywhere;
 }
+.task-board-container {
+  container-type: inline-size;
+  min-width: 0;
+}
+.task-board-container .kanban {
+  align-items: start;
+}
+@container (max-width: 759px) {
+  .task-board-container .kanban {
+    grid-template-columns: minmax(0, 1fr);
+    overflow-x: visible;
+    padding: 0;
+  }
+  .task-board-container .kanban-column {
+    min-height: 0;
+  }
+  .task-board-container .column-empty {
+    padding: 8px 0;
+    text-align: left;
+  }
+}

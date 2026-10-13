@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Plus, RefreshCw, RotateCcw } from 'lucide-react';
 import { Button, EmptyState } from '../../shared/ui/controls';
 import { useQuery } from '../../shared/http/query';
@@ -19,6 +19,7 @@ export function ApiLinks({
   filter,
   memory,
   onReset,
+  renderLayout,
 }: {
   store: LinkStore;
   options?: LinkProjectOptions;
@@ -26,6 +27,7 @@ export function ApiLinks({
   filter: LinkFilter;
   memory?: LinkMemory;
   onReset?: () => void;
+  renderLayout?: (action: ReactNode, content: ReactNode) => ReactNode;
 }) {
   const list = store.list(filter);
   const activeList = useRef(list);
@@ -164,27 +166,30 @@ export function ApiLinks({
       }
     }
   };
-  return (
+  const createAction = memory && (
+    <Button
+      ref={add}
+      variant="primary"
+      disabled={busy}
+      onClick={() => {
+        memory.editor = { draft: linkDraft() };
+        setEditing(true);
+      }}
+    >
+      <Plus size={16} />
+      링크 추가
+    </Button>
+  );
+  const content = (
     <>
       <div className={memory ? 'content-panel library-page-content' : undefined}>
-        {memory && (
+        {memory && !renderLayout && (
           <div className="panel-heading library-header">
             <div>
               <h2>개발 레퍼런스</h2>
               <p>공식 문서와 개발 도구를 모아 두었어요.</p>
             </div>
-            <Button
-              ref={add}
-              variant="primary"
-              disabled={busy}
-              onClick={() => {
-                memory.editor = { draft: linkDraft() };
-                setEditing(true);
-              }}
-            >
-              <Plus size={16} />
-              링크 추가
-            </Button>
+            {createAction}
           </div>
         )}
         <div className={memory ? 'library-toolbar' : undefined}>
@@ -193,10 +198,16 @@ export function ApiLinks({
               <p role="status">검색 결과 {state.data?.total}개</p>
             )}
             {memory && (
-              <p className="muted">
-                연결 없는 링크는 미분류에 표시됩니다. 순서 변경은 검색·필터를 초기화한 전체 목록에서
-                할 수 있어요.
-              </p>
+              <div className="muted">
+                {filtered && <p>순서를 바꾸려면 검색·필터를 초기화하세요.</p>}
+                <details>
+                  <summary>링크 분류와 순서 안내</summary>
+                  <p>
+                    연결 없는 링크는 미분류에 표시됩니다. 순서 변경은 검색·필터를 초기화한 전체
+                    목록에서 할 수 있어요.
+                  </p>
+                </details>
+              </div>
             )}
           </div>
           {(memory || state.status === 'error') && (
@@ -308,4 +319,5 @@ export function ApiLinks({
       )}
     </>
   );
+  return renderLayout ? renderLayout(createAction, content) : content;
 }

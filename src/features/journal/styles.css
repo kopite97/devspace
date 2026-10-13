@@ -278,8 +278,8 @@ button.document-row:hover:not(:disabled) {
   overflow-wrap: anywhere;
 }
 .journal-detail-header {
-  padding-bottom: 28px;
-  margin-bottom: 32px;
+  padding-bottom: 20px;
+  margin-bottom: 16px;
   border-bottom: 1px solid var(--border);
 }
 .journal-detail-toolbar {
@@ -339,7 +339,7 @@ button.document-row:hover:not(:disabled) {
 .journal-detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 32px;
+  gap: 20px;
   align-items: start;
 }
 .journal-detail .journal-viewer {
@@ -347,10 +347,9 @@ button.document-row:hover:not(:disabled) {
 }
 .journal-detail .detail-body {
   margin: 0;
-  max-width: 70ch;
-  color: var(--text);
-  font-size: 16px;
-  line-height: 1.85;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.65;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -439,14 +438,56 @@ button.document-row:hover:not(:disabled) {
   outline: 2px solid var(--accent);
   outline-offset: 5px;
 }
-@media (min-width: 1200px) {
-  .journal-detail-grid {
-    grid-template-columns: minmax(0, 1fr) 300px;
-  }
+.journal-description-label {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.journal-description-disclosure summary {
+  cursor: pointer;
+  list-style: none;
+  min-height: 44px;
+}
+.journal-description-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+.journal-description-disclosure summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+.journal-description-preview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  white-space: pre-wrap;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+.journal-description-more,
+.journal-description-less {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--accent);
+  font-size: 12px;
+}
+.journal-description-less,
+.journal-description-disclosure[open] .journal-description-preview,
+.journal-description-disclosure[open] .journal-description-more {
+  display: none;
+}
+.journal-description-disclosure[open] .journal-description-less {
+  display: inline-flex;
+}
+.field textarea.journal-description-input {
+  min-height: 96px;
 }
 @media (max-width: 600px) {
   .journal-detail-header {
-    margin-bottom: 24px;
+    margin-bottom: 16px;
     padding-bottom: 20px;
   }
   .journal-detail-toolbar {

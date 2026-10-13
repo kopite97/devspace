@@ -190,3 +190,28 @@
     align-items: flex-start;
   }
 }
+.link-fieldset {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.link-copy > .muted {
+  display: block;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 4px;
+}
+.library-toolbar details summary {
+  cursor: pointer;
+  padding: 8px 0;
+}
+.library-toolbar details p {
+  max-width: 60ch;
+}
+.library-page-content > .library-toolbar {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}

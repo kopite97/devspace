@@ -465,7 +465,7 @@ export function ApiDashboardWorkspace({
               <p>검색 조건을 바꾸거나 홈에 필요한 위젯을 추가해 주세요.</p>
             </EmptyState>
           )}
-        {((state.data?.initialized !== false && state.data) || editing) && (
+        {((state.data?.initialized !== false && state.data) || editing) && items.length === 0 && (
           <button
             className="add-widget-area"
             disabled={busy || editor?.review || (!editing && state.status !== 'ready')}

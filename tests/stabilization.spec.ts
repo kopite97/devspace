@@ -53,7 +53,7 @@ test('journal creation validates, persists and appears on the home widget', asyn
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.getByLabel('일지 제목').fill('오늘의 테스트 기록');
   await page.getByRole('combobox', { name: '프로젝트', exact: true }).selectOption('api');
-  await page.getByLabel('본문').fill('서버 없이 로컬 저장을 검증했습니다.');
+  await page.getByLabel('일지 설명').fill('서버 없이 로컬 저장을 검증했습니다.');
   await page.getByRole('button', { name: '일지 저장' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.locator('.document-row').first()).toContainText('오늘의 테스트 기록');
@@ -104,7 +104,7 @@ test('journal failed save and discard cancellation preserve input', async ({ pag
   await page.getByRole('button', { name: '일지 작성', exact: true }).click();
   await page.getByLabel('일지 제목').fill('보호할 초안');
   await page.getByRole('combobox', { name: '프로젝트', exact: true }).selectOption('forest');
-  await page.getByLabel('본문').fill('작성 중인 내용');
+  await page.getByLabel('일지 설명').fill('작성 중인 내용');
   await page.getByRole('button', { name: '일지 저장' }).click();
   await expect(page.getByRole('dialog').getByRole('alert')).toContainText('입력 내용은 유지');
   page.once('dialog', (dialog) => dialog.dismiss());

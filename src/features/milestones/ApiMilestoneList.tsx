@@ -1,5 +1,5 @@
 import type { CategoryFilter } from '../projects/categoryFilter';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Flag } from 'lucide-react';
 import { Button, EmptyState, Field } from '../../shared/ui/controls';
 import { useQuery } from '../../shared/http/query';
@@ -20,6 +20,7 @@ export function ApiMilestoneList({
   limit,
   readOnly = false,
   onNavigate,
+  renderHeader,
 }: {
   store: MilestoneStore;
   options: MilestoneProjectOptions;
@@ -29,6 +30,7 @@ export function ApiMilestoneList({
   limit?: number;
   readOnly?: boolean;
   onNavigate: (path: string) => void;
+  renderHeader?: (action: ReactNode) => ReactNode;
 }) {
   const [status, setStatus] = useState<'open' | 'done' | 'all'>('open');
   const [editing, setEditing] = useState(!!memory.editor && !readOnly);
@@ -133,26 +135,27 @@ export function ApiMilestoneList({
     setEditing(false);
     statusRef.current?.focus();
   };
+  const createAction = !readOnly && (
+    <div className="feature-actions">
+      <Button
+        disabled={!!pending}
+        onClick={() => {
+          const draft = { ...milestoneDraft(), projectId: projectId ?? '' };
+          memory.editor = {
+            target: 'create',
+            draft,
+            initialDraft: { ...draft },
+          };
+          setEditing(true);
+        }}
+      >
+        마일스톤 추가
+      </Button>
+    </div>
+  );
   return (
     <div className="milestones milestone-surface">
-      {!readOnly && (
-        <div className="feature-actions">
-          <Button
-            disabled={!!pending}
-            onClick={() => {
-              const draft = { ...milestoneDraft(), projectId: projectId ?? '' };
-              memory.editor = {
-                target: 'create',
-                draft,
-                initialDraft: { ...draft },
-              };
-              setEditing(true);
-            }}
-          >
-            마일스톤 추가
-          </Button>
-        </div>
-      )}
+      {renderHeader ? renderHeader(createAction) : createAction}
       <Field label="마일스톤 상태 필터">
         <select
           ref={statusRef}

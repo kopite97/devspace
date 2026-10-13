@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useQuery, type Query, type QueryState } from '../../shared/http/query';
 import { Button, EmptyState, Modal } from '../../shared/ui/controls';
@@ -106,12 +106,7 @@ export function TaskColumns({
                 ? '검색 조건에 맞는 태스크가 없어요'
                 : '태스크가 없어요'
             }
-          >
-            <Button disabled={!actions} onClick={actions?.create}>
-              <Plus size={16} />
-              태스크 추가
-            </Button>
-          </EmptyState>
+          />
         )}
       {filter.query && stats.data && <p role="status">검색 결과 {stats.data.total}개</p>}
       <TaskBoard
@@ -167,6 +162,7 @@ function TaskTrash({
   );
 }
 export function TaskReads({
+  createAction,
   store,
   filter,
   actions,
@@ -176,6 +172,7 @@ export function TaskReads({
   filter: TaskFilter;
   actions?: TaskActions;
   limit?: number;
+  createAction?: ReactNode;
 }) {
   const [trash, setTrash] = useState(false);
   const badgeFilter = { ...filter, query: '', deleted: true, limit: 1 };
@@ -183,10 +180,14 @@ export function TaskReads({
   return (
     <>
       <div className="feature-actions">
-        <Button disabled={!actions} onClick={actions?.create}>
-          <Plus size={14} />
-          태스크 추가
-        </Button>
+        {createAction === undefined ? (
+          <Button disabled={!actions} onClick={actions?.create}>
+            <Plus size={14} />
+            태스크 추가
+          </Button>
+        ) : (
+          createAction
+        )}
         <Button variant="ghost" onClick={() => setTrash(true)}>
           <Trash2 size={14} />
           휴지통 ({badge.data?.total ?? '—'})

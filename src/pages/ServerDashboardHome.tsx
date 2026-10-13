@@ -103,6 +103,7 @@ export function ServerDashboardHome(p: Props) {
         }}
         displaySelection={(widget) => homeWidget(widget).selection}
         scaffold={{
+          compact: true,
           title: '다시 만나 반가워요 👋',
           description: '만들고 있는 것들, 오늘의 할 일. 여기서 이어가세요.',
           filters: (

@@ -203,6 +203,7 @@ export function ApiJournalWorkspace({
   return (
     <>
       <PageScaffold
+        compact
         title="개발 일지"
         description="작업의 맥락과 다음 단계를 기록하세요."
         actions={

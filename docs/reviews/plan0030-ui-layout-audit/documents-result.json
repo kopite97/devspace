@@ -1,0 +1,24 @@
+{
+  "documentId": "8d423770-0044-4237-ab92-104f69bf8a53",
+  "journalId": "7c98c41d-2bba-4620-9183-a976e456e011",
+  "attachmentIds": ["4eec24aa-4fdb-4cd3-b3c3-f56f703de78f", "fa7d68b8-f5f0-41cc-9267-4ef8b8710e64"],
+  "serializedSaves": ["저장 A", "최신 저장 C"],
+  "publicationOrder": ["PUT", "POST"],
+  "blockTypes": [
+    "paragraph",
+    "heading",
+    "bulletListItem",
+    "numberedListItem",
+    "checkListItem",
+    "toggleListItem",
+    "heading",
+    "quote",
+    "codeBlock",
+    "table",
+    "image",
+    "file",
+    "paragraph"
+  ],
+  "browserErrors": [],
+  "multipartOverflow": "413"
+}
