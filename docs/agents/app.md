@@ -1,4 +1,6 @@
-# AGENTS.md
+# Application composition instructions
+
+Applies to `src/app/` and all descendants, in addition to [source instructions](source.md). References to this directory mean `src/app/`.
 
 - Use this directory for application bootstrap and top-level composition.
 - Keep providers, routing setup, and application-wide configuration here.

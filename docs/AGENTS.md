@@ -6,6 +6,7 @@ Follow all applicable AGENTS.md files when creating or modifying documentation. 
 
 ## Structure
 
+- `agents/` — repository workflow and centralized source instructions, with scopes mapped in the root `AGENTS.md`
 - `plans/` — implementation and migration plans
 - `decisions/` — technical and architectural decisions
 - `architecture/` — current system structure and design

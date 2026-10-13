@@ -1,4 +1,6 @@
-# AGENTS.md
+# Shared code instructions
+
+Applies to `src/shared/` and all descendants, in addition to [source instructions](source.md). References to this directory mean `src/shared/`.
 
 - Use this directory only for reusable, feature-agnostic code.
 - Keep shared components, hooks, utilities, types, and infrastructure independent of application features.

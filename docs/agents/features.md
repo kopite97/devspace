@@ -1,4 +1,6 @@
-# AGENTS.md
+# Feature instructions
+
+Applies to `src/features/` and all descendants, in addition to [source instructions](source.md). References to this directory mean `src/features/`.
 
 - Organize code in this directory by user-facing feature.
 - Keep each feature self-contained and focused on a single domain responsibility.

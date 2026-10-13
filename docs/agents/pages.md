@@ -1,4 +1,6 @@
-# AGENTS.md
+# Page composition instructions
+
+Applies to `src/pages/` and all descendants, in addition to [source instructions](source.md). References to this directory mean `src/pages/`.
 
 - Use this directory for page-level application composition.
 - Compose pages from `features` and `shared` rather than implementing feature behavior directly.
