@@ -1,0 +1,5 @@
+id,title,status,priority,tag,source_type,revision,issue_number,source_state,source_state_reason,last_applied_at
+2c742e1d-3940-4fd9-b50c-a950b78d7f92,test2,todo,high,plan0032,github,2,2,open,,2026-10-20 08:17:57.221474+00
+1a5e6062-7be3-4978-9cf0-78eb41a3ea6b,PLAN-0032 20261020 webhook transition,todo,normal,,github,7,4,open,reopened,2026-10-20 08:23:38.762588+00
+6f2fe3b3-c57c-425c-86ed-05c8083a0665,PLAN-0032 20261020 paused candidate,todo,normal,,github,1,5,open,,2026-10-20 08:17:57.221474+00
+03c7a7e7-2245-4833-811c-b2c5cfafbc95,PLAN-0032 ordinary Task control,doing,normal,plan0032-control,local,1,,,,
