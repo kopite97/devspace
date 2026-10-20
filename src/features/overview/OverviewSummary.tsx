@@ -33,6 +33,11 @@ export function OverviewSummary({
       )}
       {state.data && (
         <>
+          {state.data.externalDataUnavailable && (
+            <p role="status">
+              일부 GitHub 작업은 표시할 수 없습니다. 집계는 접근 가능한 작업 기준입니다.
+            </p>
+          )}
           <dl className="overview-counts">
             {Object.entries({
               'Active Projects': state.data.projects.total,

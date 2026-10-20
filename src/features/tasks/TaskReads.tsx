@@ -6,6 +6,17 @@ import { TaskBoard } from './TaskBoard';
 import { taskPresentation, type ApiTask } from './apiModel';
 import { type TaskStore, type TaskFilter, type TaskList, type TaskListFilter } from './apiStore';
 import type { TaskStatus } from './presentation';
+import { sourceReasons, sourceReasonLabels, type SourceReason } from './source';
+import { TaskSourceInfo } from './TaskSourceInfo';
+
+export function ExternalDataNotice({ unavailable }: { unavailable?: boolean }) {
+  return unavailable ? (
+    <p className="notice" role="status">
+      일부 GitHub 데이터는 접근 권한 또는 외부 장애로 표시할 수 없습니다. 개수는 표시 가능한 작업
+      기준입니다.
+    </p>
+  ) : null;
+}
 
 export function TaskReadState<T>({
   state,
@@ -96,6 +107,11 @@ export function TaskColumns({
   return (
     <>
       <TaskReadState state={stats} query={store.stats(filter)} />
+      <ExternalDataNotice
+        unavailable={
+          stats.data?.externalDataUnavailable || states.some((s) => s.data?.externalDataUnavailable)
+        }
+      />
       {stats.status === 'ready' &&
         stats.data?.total === 0 &&
         states.every((state) => state.status === 'ready') && (
@@ -144,6 +160,7 @@ function TaskTrash({
           <span>
             <strong>{task.title}</strong>
             <small>{task.projectName}</small>
+            <TaskSourceInfo source={task.source} />
           </span>
           <Button
             aria-label={`${task.title} 복구`}
@@ -158,6 +175,7 @@ function TaskTrash({
         <EmptyState title="휴지통이 비어 있어요" />
       )}
       <PageControls store={store} filter={listFilter} state={state} />
+      <ExternalDataNotice unavailable={state.data?.externalDataUnavailable} />
     </Modal>
   );
 }
@@ -175,11 +193,28 @@ export function TaskReads({
   createAction?: ReactNode;
 }) {
   const [trash, setTrash] = useState(false);
+  const [reason, setReason] = useState<SourceReason | ''>('');
+  filter = { ...filter, sourceReason: reason || undefined };
   const badgeFilter = { ...filter, query: '', deleted: true, limit: 1 };
   const badge = useQuery(store.list(badgeFilter));
   return (
     <>
       <div className="feature-actions">
+        <label>
+          GitHub 상태{' '}
+          <select
+            aria-label="GitHub 상태 필터"
+            value={reason}
+            onChange={(e) => setReason(e.target.value as SourceReason | '')}
+          >
+            <option value="">전체</option>
+            {sourceReasons.map((r) => (
+              <option key={r} value={r}>
+                {sourceReasonLabels[r]}
+              </option>
+            ))}
+          </select>
+        </label>
         {createAction === undefined ? (
           <Button disabled={!actions} onClick={actions?.create}>
             <Plus size={14} />
@@ -230,6 +265,9 @@ function TaskBudget({
     <>
       <TaskReadState state={state} query={list} />
       <TaskReadState state={stats} query={store.stats(filter)} />
+      <ExternalDataNotice
+        unavailable={state.data?.externalDataUnavailable || stats.data?.externalDataUnavailable}
+      />
       <TaskBoard
         tasks={(state.data?.items ?? []).map(taskPresentation)}
         columns={Object.fromEntries(

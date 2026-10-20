@@ -35,6 +35,11 @@ function Rows({
   const archived = !!selectionFilter(widget.selection).projectId && rows[0]?.status === 'archived';
   return (
     <>
+      {counters.data?.externalDataUnavailable && (
+        <p role="status">
+          일부 GitHub 작업은 표시할 수 없습니다. 집계는 접근 가능한 작업 기준입니다.
+        </p>
+      )}
       <ProjectOverview
         filteredResults={{ total: rows.length }}
         projects={rows.map((p) => ({ ...p, ...presentation(p) }))}

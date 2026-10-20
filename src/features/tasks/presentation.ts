@@ -1,4 +1,5 @@
 /** Provider-independent inputs shared by the legacy and authenticated views. */
+import type { TaskSource } from './source';
 export type TaskStatus = 'todo' | 'doing' | 'done';
 export type TaskPresentation = {
   id: string;
@@ -13,6 +14,7 @@ export type TaskPresentation = {
   projectId?: string;
   description?: string;
   deletedAt?: string | null;
+  source?: TaskSource | null;
 };
 export type TaskDraft = {
   title: string;

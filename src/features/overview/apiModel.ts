@@ -35,6 +35,7 @@ export function parseOverview(value: unknown, filter: OverviewFilter) {
       total: count(tasks.total),
     },
     asOf: timestamp(row.asOf),
+    externalDataUnavailable: row.externalDataUnavailable === true,
   };
 }
 export type Overview = ReturnType<typeof parseOverview>;

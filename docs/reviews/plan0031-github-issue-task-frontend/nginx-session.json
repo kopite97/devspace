@@ -1,0 +1,11 @@
+{
+  "boundary": "nginx",
+  "passed": true,
+  "protocol": {
+    "authorizations": 3,
+    "exchanges": 3,
+    "pkce": 3
+  },
+  "businessRows": 0,
+  "excludedRequests": 0
+}

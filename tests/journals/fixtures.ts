@@ -38,6 +38,9 @@ export const identity = {
 
 export async function setup(page: Page) {
   await setupDashboard(page);
+  await page.route('**/api/v2/projects/*/github/repositories', (route) =>
+    route.request().method() === 'GET' ? route.fulfill({ json: [] }) : route.abort('failed'),
+  );
   // This suite covers existing Journal CRUD; document success is verified against the real API.
   await page.route('**/api/v2/journals/*/documents?*', (route) => route.abort('failed'));
   await page.route('**/api/v1/me', (route) => route.fulfill({ json: identity }));

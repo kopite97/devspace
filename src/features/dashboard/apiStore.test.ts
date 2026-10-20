@@ -40,6 +40,59 @@ function make(fetcher: typeof fetch) {
 }
 
 describe('Dashboard v3 / Widget v1 store', () => {
+  it('retiring protected Widget reads does not cancel the independent Home layout read', async () => {
+    let resolve!: (response: Response) => void;
+    const store = make(
+      () =>
+        new Promise<Response>((done) => {
+          resolve = done;
+        }),
+    );
+    const pending = store.home.load();
+    await new Promise((done) => setTimeout(done, 0));
+    store.clearProtectedData();
+    resolve(Response.json(home(1)));
+    await pending;
+    expect(store.home.getSnapshot().status).toBe('ready');
+    store.dispose();
+  });
+  it.each(['board', 'overview'])(
+    'reports %s partial data from its actual nested statistics field',
+    async (type) => {
+      const store = make(async () =>
+        Response.json({
+          widgetId: id,
+          type,
+          configRevision: 1,
+          configVersion: 1,
+          payloadVersion: 1,
+          availability: 'ready',
+          freshness: 'current',
+          readAt: '2026-10-20T00:00:00Z',
+          sourceObservedAt: null,
+          lastSuccessfulSyncAt: null,
+          data: {
+            kind: type,
+            [type === 'board' ? 'statistics' : 'tasks']: {
+              total: 1,
+              externalDataUnavailable: true,
+            },
+          },
+          page: null,
+          problem: null,
+        }),
+      );
+      let count = 0;
+      store.onPartial = () => {
+        count++;
+      };
+      const query = store.widgetData(id);
+      await query.load();
+      expect(count).toBe(1);
+      expect(query.getSnapshot().status).toBe('ready');
+      store.dispose();
+    },
+  );
   it('reads v3 Home and explicit initialization uses the v3 initialization endpoint', async () => {
     const calls: { path: string; options?: RequestInit }[] = [];
     const store = make(async (path, options) => {

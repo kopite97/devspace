@@ -1,0 +1,150 @@
+{
+  "origin": "http://127.0.0.1:4175",
+  "passed": true,
+  "account": "not_configured",
+  "operations": [
+    {
+      "path": "/api/v2/projects/{projectId}/github/repositories/{linkId}/status-mapping",
+      "method": "get",
+      "success": ["200"]
+    },
+    {
+      "path": "/api/v2/projects/{projectId}/github/repositories/{linkId}/status-mapping",
+      "method": "put",
+      "success": ["200"]
+    },
+    {
+      "path": "/api/v2/projects/{projectId}/github/repositories/{linkId}/import-settings",
+      "method": "get",
+      "success": ["200"]
+    },
+    {
+      "path": "/api/v2/projects/{projectId}/github/repositories/{linkId}/import-settings",
+      "method": "put",
+      "success": ["200"]
+    },
+    {
+      "path": "/api/v2/projects/{projectId}/github/repositories",
+      "method": "get",
+      "success": ["200"]
+    },
+    {
+      "path": "/api/v2/projects/{projectId}/github/repositories",
+      "method": "post",
+      "success": ["201"]
+    },
+    {
+      "path": "/api/v2/projects/{projectId}/github/repositories/{linkId}/task-imports",
+      "method": "post",
+      "success": ["202"]
+    },
+    {
+      "path": "/api/v2/projects/{projectId}/github/repositories/{linkId}/task-import-previews",
+      "method": "post",
+      "success": ["200"]
+    },
+    {
+      "path": "/api/v2/projects/{projectId}/github/repositories/{linkId}/sync-requests",
+      "method": "post",
+      "success": ["202"]
+    },
+    {
+      "path": "/api/v2/projects/{projectId}/github/repositories/{linkId}/status-mapping-previews",
+      "method": "post",
+      "success": ["200"]
+    },
+    {
+      "path": "/api/v2/projects/{projectId}/github/repositories/{linkId}/issue-fetches",
+      "method": "post",
+      "success": ["202"]
+    },
+    {
+      "path": "/api/v2/projects/{projectId}/github/repositories/{linkId}/cleanup-requests",
+      "method": "post",
+      "success": ["202"]
+    },
+    {
+      "path": "/api/v2/integrations/github/authorization-requests",
+      "method": "post",
+      "success": ["201"]
+    },
+    {
+      "path": "/api/v2/projects/{projectId}/github/repositories/{linkId}/sync-settings",
+      "method": "patch",
+      "success": ["200"]
+    },
+    {
+      "path": "/api/v2/tasks/{taskId}/github-issue",
+      "method": "get",
+      "success": ["200"]
+    },
+    {
+      "path": "/api/v2/tasks/{taskId}/github-issue",
+      "method": "delete",
+      "success": ["204"]
+    },
+    {
+      "path": "/api/v2/projects/{projectId}/github/repositories/{linkId}",
+      "method": "get",
+      "success": ["200"]
+    },
+    {
+      "path": "/api/v2/projects/{projectId}/github/repositories/{linkId}",
+      "method": "delete",
+      "success": ["202"]
+    },
+    {
+      "path": "/api/v2/projects/{projectId}/github/repositories/{linkId}/sync-status",
+      "method": "get",
+      "success": ["200"]
+    },
+    {
+      "path": "/api/v2/projects/{projectId}/github/repositories/{linkId}/labels",
+      "method": "get",
+      "success": ["200"]
+    },
+    {
+      "path": "/api/v2/projects/{projectId}/github/repositories/{linkId}/issues",
+      "method": "get",
+      "success": ["200"]
+    },
+    {
+      "path": "/api/v2/integrations/github/jobs/{jobId}",
+      "method": "get",
+      "success": ["200"]
+    },
+    {
+      "path": "/api/v2/integrations/github/installations",
+      "method": "get",
+      "success": ["200"]
+    },
+    {
+      "path": "/api/v2/integrations/github/installations/{installationId}/repositories",
+      "method": "get",
+      "success": ["200"]
+    },
+    {
+      "path": "/api/v2/integrations/github/callback",
+      "method": "get",
+      "success": ["303"]
+    },
+    {
+      "path": "/api/v2/integrations/github/account",
+      "method": "get",
+      "success": ["200"]
+    },
+    {
+      "path": "/api/v2/integrations/github/account",
+      "method": "delete",
+      "success": ["204"]
+    }
+  ],
+  "checks": [
+    "authenticated deep link",
+    "reload",
+    "query does not assert connection",
+    "SPA result routing",
+    "same-origin API no-store",
+    "1440/390/320 layout"
+  ]
+}

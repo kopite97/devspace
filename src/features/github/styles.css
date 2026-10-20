@@ -1,0 +1,140 @@
+.github-workspace {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.github-panel {
+  padding: 18px 0;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.github-panel h3,
+.github-panel p {
+  margin: 0;
+}
+.github-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.github-row > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.github-row small {
+  display: block;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.github-actions,
+.github-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.github-badge {
+  display: inline-block;
+  font-size: 12px;
+  padding: 3px 7px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+}
+.github-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.github-workspace label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+.github-workspace input,
+.github-workspace select {
+  width: 100%;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--control-border);
+  background: var(--surface-raised);
+  color: var(--text);
+}
+.github-workspace input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  margin: 0;
+  flex: 0 0 18px;
+}
+.github-workspace label:has(> input[type='checkbox']) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.github-workspace .github-issue-check {
+  justify-content: center;
+  width: 44px;
+  align-self: start;
+}
+.github-issue {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.github-issue > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.github-issue pre {
+  white-space: pre-wrap;
+  max-height: 240px;
+  overflow: auto;
+  font: inherit;
+}
+.github-selection {
+  position: sticky;
+  bottom: 0;
+  background: var(--surface-raised);
+  border-top: 1px solid var(--border);
+  padding: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  z-index: 1;
+}
+.safe-markdown {
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.safe-markdown pre {
+  white-space: pre-wrap;
+  overflow: auto;
+  padding: 12px;
+  background: var(--surface-subtle);
+}
+.task-source {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0;
+  font-size: 12px;
+}
+@media (max-width: 700px) {
+  .github-filters {
+    grid-template-columns: 1fr;
+  }
+  .github-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}

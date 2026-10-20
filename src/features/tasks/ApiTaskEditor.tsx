@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Button, Modal } from '../../shared/ui/controls';
 import { useQuery } from '../../shared/http/query';
 import { CancelledError, HttpError } from '../../shared/http/client';
@@ -11,6 +11,8 @@ import type { TaskStore } from './apiStore';
 import type { TaskMemory, TaskEditorMemory } from './draftMemory';
 import type { TaskProjectOptions } from './projectOptions';
 import type { TaskProjectOption } from './presentation';
+import { TaskSourceInfo } from './TaskSourceInfo';
+import { SafeMarkdown } from '../../shared/ui/SafeMarkdown';
 
 function SelectedProject({
   options,
@@ -41,6 +43,8 @@ export function ApiTaskEditor({
   onSaved: (message?: string) => void;
 }) {
   const [editor, setEditor] = useState<TaskEditorMemory>(() => memory.editor!);
+  useSyncExternalStore(store.subscribeProtection, store.protectionSnapshot);
+  const hidden = !!editor.baseline && store.isProtected(editor.baseline.id);
   const [busy, setBusy] = useState(false),
     [notice, setNotice] = useState(editor.notice ?? '');
   const [conflict, setConflict] = useState(false),
@@ -85,7 +89,7 @@ export function ApiTaskEditor({
       setNotice('최신 태스크를 확인하지 못했습니다. 입력 내용은 유지됩니다. 다시 확인해 주세요.');
   };
   const run = async (deleting = false) => {
-    if (pending.current || conflict) return;
+    if (pending.current || conflict || hidden) return;
     const errors = validateDraft(editor.draft);
     if (!deleting && Object.keys(errors).length) {
       setNotice(Object.values(errors).join(' '));
@@ -173,6 +177,20 @@ export function ApiTaskEditor({
       if (current()) setBusy(false);
     }
   };
+  if (hidden)
+    return (
+      <Modal
+        title="접근 상태 확인 필요"
+        onClose={() => {
+          memory.editor = undefined;
+          onClose();
+        }}
+      >
+        <p>
+          GitHub 원문에 대한 접근을 확인하지 못해 편집 내용을 숨겼습니다. 목록을 새로고침해 주세요.
+        </p>
+      </Modal>
+    );
   return (
     <Modal title={editor.baseline ? '태스크 편집' : '태스크 추가'} onClose={close} wide>
       <form
@@ -182,7 +200,15 @@ export function ApiTaskEditor({
         }}
       >
         <fieldset disabled={busy || !!editor.intent} className="task-fieldset">
+          <TaskSourceInfo source={editor.baseline?.source} />
+          {editor.baseline?.source && (
+            <details>
+              <summary>GitHub 본문 읽기</summary>
+              <SafeMarkdown text={editor.baseline.description} />
+            </details>
+          )}
           <TaskFields
+            sourceManaged={!!editor.baseline?.source}
             form={editor.draft}
             projects={[...values.values()]}
             change={(key, value) => update({ ...editor, draft: { ...editor.draft, [key]: value } })}
@@ -252,6 +278,33 @@ export function ApiTaskEditor({
           </div>
         )}
         <div className="modal-actions">
+          {editor.baseline?.source && (
+            <Button
+              type="button"
+              disabled={busy || conflict}
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    '마지막 정상 내용을 일반 Task로 보존할까요? 이후 자동 재가져오기에서 제외됩니다.',
+                  )
+                )
+                  return;
+                setBusy(true);
+                void store
+                  .convert(editor.baseline!.id, editor.baseline!.revision)
+                  .then(() => {
+                    memory.editor = undefined;
+                    onSaved('일반 Task로 전환했습니다.');
+                  })
+                  .catch((error) =>
+                    setNotice(error instanceof Error ? error.message : '전환하지 못했습니다.'),
+                  )
+                  .finally(() => setBusy(false));
+              }}
+            >
+              일반 Task로 전환
+            </Button>
+          )}
           {editor.baseline && (
             <Button
               type="button"

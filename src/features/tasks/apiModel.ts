@@ -1,5 +1,6 @@
 import { count, object, oneOf, string, timestamp, uuid } from '../../shared/http/validation';
 import type { TaskDraft, TaskPresentation, TaskStatus } from './presentation';
+import { parseSource, type TaskSource } from './source';
 
 export type ServerTaskId = string & { readonly serverTaskId: unique symbol };
 export type ApiTask = {
@@ -16,6 +17,7 @@ export type ApiTask = {
   priority: 'normal' | 'high';
   tag: string;
   deletedAt: string | null;
+  source?: TaskSource | null;
 };
 export function parseTask(value: unknown): ApiTask {
   const row = object(value);
@@ -35,6 +37,7 @@ export function parseTask(value: unknown): ApiTask {
     priority: oneOf(row.priority, ['normal', 'high']),
     tag: string(row.tag),
     deletedAt: row.deletedAt === null ? null : timestamp(row.deletedAt),
+    source: parseSource(row.source),
   };
 }
 export function taskDraft(task?: ApiTask): TaskDraft {
@@ -55,6 +58,7 @@ export function taskPresentation(task: ApiTask): TaskPresentation {
     project: task.projectName,
     categoryId: task.categoryId,
     deletedAt: task.deletedAt,
+    source: task.source,
   };
 }
 export function validateDraft(draft: TaskDraft): Record<string, string> {
@@ -85,6 +89,14 @@ export function createBody(draft: TaskDraft) {
   };
 }
 export function patchBody(baseline: ApiTask, draft: TaskDraft) {
+  if (baseline.source) {
+    const changes: Record<string, string | number> = { revision: baseline.revision };
+    if (draft.tag.trim().length > 40) throw new Error('태그는 40자까지 입력해 주세요.');
+    if (draft.tag.trim() !== baseline.tag) changes.tag = draft.tag.trim();
+    const priority = draft.priority === '높음' ? 'high' : 'normal';
+    if (priority !== baseline.priority) changes.priority = priority;
+    return changes;
+  }
   const before = createBody(taskDraft(baseline));
   const after = createBody(draft);
   const changes: Record<string, string | number> = { revision: baseline.revision };
@@ -92,15 +104,30 @@ export function patchBody(baseline: ApiTask, draft: TaskDraft) {
     if (after[key] !== before[key]) changes[key] = after[key];
   return changes;
 }
-export type TaskPage = { items: ApiTask[]; total: number; nextCursor: string | null };
+export type TaskPage = {
+  items: ApiTask[];
+  total: number;
+  nextCursor: string | null;
+  externalDataUnavailable?: boolean;
+};
 export function parseTaskPage(value: unknown): TaskPage {
   const row = object(value);
   if (!Array.isArray(row.items)) throw new Error('Invalid Task page');
   const nextCursor = row.nextCursor === null ? null : string(row.nextCursor);
   if (nextCursor === '') throw new Error('Empty Task cursor');
-  return { items: row.items.map(parseTask), total: count(row.total), nextCursor };
+  return {
+    items: row.items.map(parseTask),
+    total: count(row.total),
+    nextCursor,
+    externalDataUnavailable: row.externalDataUnavailable === true,
+  };
 }
-export type TaskStats = { counts: Record<TaskStatus, number>; total: number; asOf: string };
+export type TaskStats = {
+  counts: Record<TaskStatus, number>;
+  total: number;
+  asOf: string;
+  externalDataUnavailable?: boolean;
+};
 export function parseTaskStats(value: unknown): TaskStats {
   const row = object(value);
   const buckets = object(row.counts);
@@ -111,5 +138,10 @@ export function parseTaskStats(value: unknown): TaskStats {
   };
   const total = count(row.total);
   if (counts.todo + counts.doing + counts.done !== total) throw new Error('Invalid Task total');
-  return { counts, total, asOf: timestamp(row.asOf) };
+  return {
+    counts,
+    total,
+    asOf: timestamp(row.asOf),
+    externalDataUnavailable: row.externalDataUnavailable === true,
+  };
 }

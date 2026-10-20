@@ -6,30 +6,36 @@ export function TaskFields({
   form,
   change,
   projects,
+  sourceManaged = false,
 }: {
   form: TaskDraft;
   change: <K extends keyof TaskDraft>(key: K, value: TaskDraft[K]) => void;
   projects: TaskProjectOption[];
+  sourceManaged?: boolean;
 }) {
   return (
     <div className="form-grid">
       <Field label="태스크 제목">
         <input
           required
+          disabled={sourceManaged}
           maxLength={160}
           value={form.title}
           onChange={(e) => change('title', e.target.value)}
           autoFocus
         />
       </Field>
-      <ProjectSelect
-        projects={projects}
-        value={form.projectId}
-        onChange={(id) => change('projectId', id)}
-      />
+      <fieldset disabled={sourceManaged} className="task-fieldset">
+        <ProjectSelect
+          projects={projects}
+          value={form.projectId}
+          onChange={(id) => change('projectId', id)}
+        />
+      </fieldset>
       <Field label="상태">
         <select
           value={form.status}
+          disabled={sourceManaged}
           onChange={(e) => change('status', e.target.value as TaskDraft['status'])}
         >
           <option value="todo">할 일</option>
@@ -52,6 +58,7 @@ export function TaskFields({
       <Field label="상세 내용">
         <textarea
           rows={5}
+          disabled={sourceManaged}
           maxLength={10000}
           value={form.description}
           onChange={(e) => change('description', e.target.value)}

@@ -27,6 +27,10 @@ export function useTaskStatusActions(store: TaskStore) {
 
   const status = async (id: string, next: TaskStatus, revision?: number) => {
     const task = store.entities.get(id);
+    if (task?.source) {
+      setNotice('이 Task의 상태는 GitHub에서 관리합니다.');
+      return;
+    }
     const expectedRevision = Math.max(task?.revision ?? 0, revision ?? 0);
     if (locks.current.has(id)) return;
     if (!expectedRevision) {

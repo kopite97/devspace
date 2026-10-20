@@ -26,6 +26,7 @@ type Props = {
   renderTasks?: (id: string) => ReactNode;
   renderJournals?: (project: ApiProject) => ReactNode;
   renderMilestones?: (id: string) => ReactNode;
+  renderGitHub?: (project: ApiProject) => ReactNode;
 };
 export function ProjectTaskHeading({
   overview,
@@ -47,6 +48,11 @@ export function ProjectTaskHeading({
         <p role="alert">
           작업 집계를 불러오지 못했습니다.{' '}
           <Button onClick={() => query.invalidate()}>다시 시도</Button>
+        </p>
+      )}
+      {state.data?.externalDataUnavailable && (
+        <p role="status">
+          일부 GitHub 작업은 표시할 수 없습니다. 집계는 접근 가능한 작업 기준입니다.
         </p>
       )}
     </div>
@@ -74,6 +80,7 @@ export function ServerProjectsPage(props: Props) {
     >
       {(project) => (
         <>
+          {props.renderGitHub?.(project)}
           {props.renderMilestones?.(project.id)}
           {props.renderTasks?.(project.id)}
           {props.renderJournals?.(project)}

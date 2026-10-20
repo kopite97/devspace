@@ -12,12 +12,14 @@ import {
   type TaskStats,
 } from './apiModel';
 import type { TaskStatus } from './presentation';
+import { sourceReasons, type SourceReason } from './source';
 
 export type TaskFilter = {
   category: CategoryFilter;
   projectId?: string;
   projectStatus: 'all' | 'active' | 'archived';
   query: string;
+  sourceReason?: SourceReason;
 };
 export type TaskListFilter = TaskFilter & { status?: TaskStatus; deleted: boolean; limit: number };
 export type TaskList = TaskPage & { cursors: string[] };
@@ -28,6 +30,10 @@ export function taskParams(filter: TaskFilter | TaskListFilter) {
     query: filter.query,
   });
   if (filter.projectId) params.set('projectId', uuid(filter.projectId));
+  if (filter.sourceReason) {
+    if (!sourceReasons.includes(filter.sourceReason)) throw new Error('Invalid source reason');
+    params.set('sourceReason', filter.sourceReason);
+  }
   if ('deleted' in filter) {
     if (!Number.isInteger(filter.limit) || filter.limit < 1 || filter.limit > 100)
       throw new Error('Invalid Task limit');
@@ -43,12 +49,56 @@ export class TaskStore {
   private details = new Map<string, Query<ApiTask>>();
   private statistics = new Map<string, Query<TaskStats>>();
   private epoch = 0;
+  private partialEpoch = -1;
   private readSequence = 0;
   private entityOrder = new Map<string, number>();
   private disposed = false;
   private lifetime = new AbortController();
   private pending = new Set<string>();
   onInvalidate = () => {};
+  onProtected = () => {};
+  private protectedIds = new Set<string>();
+  private protectionListeners = new Set<() => void>();
+  private protectionRevision = 0;
+  subscribeProtection = (listener: () => void) => {
+    this.protectionListeners.add(listener);
+    return () => {
+      this.protectionListeners.delete(listener);
+    };
+  };
+  protectionSnapshot = () => this.protectionRevision;
+  isProtected(id: string) {
+    return this.protectedIds.has(id);
+  }
+  hideSources(linkId?: string, exclude?: Query<unknown>) {
+    this.epoch++;
+    for (const [id, task] of this.entities)
+      if (task.source && (!linkId || task.source.linkId === linkId)) {
+        this.protectedIds.add(id);
+        this.entities.delete(id);
+        this.entityOrder.delete(id);
+      }
+    for (const query of this.lists.values()) {
+      if (query === exclude) continue;
+      const state = query.getSnapshot();
+      if (
+        state.status === 'loading' ||
+        state.data?.items.some((t) => t.source && (!linkId || t.source.linkId === linkId))
+      )
+        query.invalidate(true);
+    }
+    for (const [id, query] of this.details)
+      if (this.protectedIds.has(id) || query.getSnapshot().status === 'loading') query.clearData();
+    for (const query of this.statistics.values()) if (query !== exclude) query.invalidate(true);
+    this.protectionRevision++;
+    for (const listener of this.protectionListeners) listener();
+    this.onProtected();
+  }
+  observePartial(exclude?: Query<unknown>) {
+    if (this.partialEpoch === this.epoch) return;
+    this.hideSources(undefined, exclude);
+    this.partialEpoch = this.epoch;
+  }
   constructor(readonly transport: PrivateTransport) {
     transport.lifecycle.signal.addEventListener('abort', () => this.dispose(), { once: true });
   }
@@ -86,6 +136,7 @@ export class TaskStore {
     )
       return previous;
     this.entities.set(task.id, task);
+    this.protectedIds.delete(task.id);
     this.entityOrder.set(task.id, order);
     return task;
   }
@@ -98,13 +149,29 @@ export class TaskStore {
       order = ++this.readSequence;
     const params = taskParams(filter);
     if (cursor) params.set('cursor', cursor);
-    const page = await this.transport.request('/api/v2/tasks?' + params, {
-      signal,
-      generation: this.transport.generation,
-      expectedStatus: 200,
-      parse: parseTaskPage,
-    });
+    let page: TaskPage;
+    try {
+      page = await this.transport.request('/api/v2/tasks?' + params, {
+        signal,
+        generation: this.transport.generation,
+        expectedStatus: 200,
+        parse: parseTaskPage,
+      });
+    } catch (error) {
+      if (
+        error instanceof HttpError &&
+        (error.code === 'TASK_ACCESS_SCOPE_CHANGED' || error.status === 403)
+      ) {
+        this.hideSources();
+        queueMicrotask(() => this.invalidate());
+      }
+      throw error;
+    }
     this.assert(epoch, signal);
+    // Sibling columns share one protection generation rather than repeatedly
+    // cancelling one another's fresh partial responses.
+    if (page.externalDataUnavailable)
+      this.observePartial(this.lists.get(taskParams(filter).toString()));
     return { ...page, items: page.items.map((task) => this.adopt(task, order)) };
   }
   list(filter: TaskListFilter) {
@@ -132,7 +199,11 @@ export class TaskStore {
       if (next.nextCursor && cursors.includes(next.nextCursor))
         throw new Error('서버가 같은 커서를 반환했습니다. 목록을 새로고침해 주세요.');
       const items = new Map(
-        previous.items.map((task) => [task.id, this.entities.get(task.id) ?? task]),
+        previous.items
+          .filter(
+            (task) => !task.source || (!next.externalDataUnavailable && !this.isProtected(task.id)),
+          )
+          .map((task) => [task.id, this.entities.get(task.id) ?? task]),
       );
       for (const task of next.items) items.set(task.id, task);
       return { ...next, items: [...items.values()], cursors };
@@ -146,12 +217,21 @@ export class TaskStore {
       query = new Query<ApiTask>(async (signal) => {
         const epoch = this.epoch,
           order = ++this.readSequence;
-        const task = await this.transport.request('/api/v2/tasks/' + id, {
-          signal,
-          generation: this.transport.generation,
-          expectedStatus: 200,
-          parse: parseTask,
-        });
+        let task: ApiTask;
+        try {
+          task = await this.transport.request('/api/v2/tasks/' + id, {
+            signal,
+            generation: this.transport.generation,
+            expectedStatus: 200,
+            parse: parseTask,
+          });
+        } catch (error) {
+          if (error instanceof HttpError && (error.status === 404 || error.status === 403)) {
+            this.protectedIds.add(id);
+            this.hideSources(this.entities.get(id)?.source?.linkId);
+          }
+          throw error;
+        }
         this.assert(epoch, signal);
         if (task.id !== id) throw new Error('Task identity mismatch');
         return this.adopt(task, order);
@@ -168,6 +248,7 @@ export class TaskStore {
       projectId: filter.projectId,
       projectStatus: filter.projectStatus,
       query: filter.query,
+      sourceReason: filter.sourceReason,
     };
     const key = taskParams(captured).toString();
     let query = this.statistics.get(key);
@@ -181,6 +262,7 @@ export class TaskStore {
           parse: parseTaskStats,
         });
         this.assert(epoch, signal);
+        if (result.externalDataUnavailable) this.observePartial(query);
         return result;
       });
       this.statistics.set(key, query);
@@ -193,6 +275,15 @@ export class TaskStore {
     for (const query of this.details.values()) query.invalidate();
     for (const query of this.statistics.values()) query.invalidate();
     this.onInvalidate();
+  }
+  async convert(id: string, revision: number) {
+    await this.transport.request(`/api/v2/tasks/${uuid(id)}/github-issue?revision=${revision}`, {
+      method: 'DELETE',
+      response: 'empty',
+      expectedStatus: 204,
+    });
+    this.invalidate();
+    await this.detail(id).load();
   }
   async mutate(
     operation: 'create' | 'patch' | 'delete' | 'restore',
@@ -207,6 +298,15 @@ export class TaskStore {
     const target = options.id ?? 'create';
     if (this.pending.has(target)) throw new Error('Task operation already pending');
     if (operation !== 'create') uuid(options.id);
+    if (operation === 'patch' && this.entities.get(target)?.source) {
+      const body = object(options.body);
+      if (Object.keys(body).some((key) => !['revision', 'priority', 'tag'].includes(key)))
+        throw new HttpError(
+          409,
+          'TASK_SOURCE_MANAGED',
+          'GitHub에서 관리하는 필드는 수정할 수 없습니다.',
+        );
+    }
     this.pending.add(target);
     try {
       if (operation === 'create' && options.endpoint === '/api/v1/tasks') {

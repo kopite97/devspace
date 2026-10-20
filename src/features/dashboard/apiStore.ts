@@ -173,6 +173,7 @@ function key() {
 }
 
 export class DashboardStore {
+  onPartial = () => {};
   readonly home: Query<ApiDashboard>;
   readonly catalog: Query<WidgetDefinition[]>;
   readonly available: Query<ReturnType<typeof parseWidgetPage>>;
@@ -244,6 +245,20 @@ export class DashboardStore {
             parse: (value) => {
               const data = parseDataEnvelope(value);
               if (data.widgetId !== id) throw new Error('Widget data identity mismatch.');
+              const payload = data.data === null ? null : object(data.data);
+              const statistics =
+                data.type === 'board'
+                  ? payload?.statistics
+                  : data.type === 'overview'
+                    ? payload?.tasks
+                    : undefined;
+              if (
+                statistics &&
+                typeof statistics === 'object' &&
+                'externalDataUnavailable' in statistics &&
+                statistics.externalDataUnavailable === true
+              )
+                this.onPartial();
               return data;
             },
           },
@@ -260,6 +275,9 @@ export class DashboardStore {
     this.catalog.invalidate();
     this.available.invalidate();
     for (const query of this.dataQueries.values()) query.invalidate();
+  }
+  clearProtectedData() {
+    for (const query of this.dataQueries.values()) query.invalidate(true);
   }
 
   async initialize() {

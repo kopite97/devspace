@@ -105,7 +105,13 @@ export function AuthenticatedLayout({
       )}
       renderTopbar={(menu) => (
         <TopbarView
-          page={location.notFound ? 'Page not found' : location.page}
+          page={
+            url.pathname.startsWith('/github')
+              ? 'GitHub 연동'
+              : location.notFound
+                ? 'Page not found'
+                : location.page
+          }
           projectId={location.projectId ?? undefined}
           avatar={avatar}
           onMenu={menu.open}
@@ -119,6 +125,9 @@ export function AuthenticatedLayout({
               error={sessionError}
             >
               {sessionControls}
+              <button className="button" onClick={() => onNavigate('/github')}>
+                GitHub 연동
+              </button>
             </AccountMenu>
           }
         />

@@ -1,4 +1,5 @@
 import { validateWorkspaceLayout } from './workspace-layout.mjs';
+import { validateGitHub } from './github.mjs';
 import { validateLinks } from './links.mjs';
 import { validateDocuments } from './documents.mjs';
 import { validateDashboard } from './dashboard.mjs';
@@ -32,6 +33,7 @@ const categoryPhase = process.argv.includes('--categories');
 const categoryOnlyPhase = process.argv.includes('--category-only');
 const documentPhase = process.argv.includes('--documents');
 const layoutPhase = process.argv.includes('--workspace-layout');
+const githubPhase = process.argv.includes('--github');
 const journalSearchPhase = process.argv.includes('--journal-search');
 const taskPhase = process.argv.find((arg) => arg.startsWith('--tasks='))?.split('=')[1];
 const journalPhase = process.argv.find((arg) => arg.startsWith('--journals='))?.split('=')[1];
@@ -51,6 +53,7 @@ const logs = [];
 let browser;
 let provider;
 let container;
+let network;
 const runId = 'plan0009-' + Date.now();
 function launch(command, args, options, name) {
   const child = spawn(command, args, {
@@ -159,6 +162,10 @@ try {
     ]);
   assert.equal(sql('select count(*) from users'), '0');
   if (nginx) {
+    // The runtime template uses Docker's embedded DNS (127.0.0.11),
+    // which is provided on user-defined networks, as in Compose deployment.
+    network = runId + '-network';
+    docker(['network', 'create', network]);
     docker(['build', '-t', 'devspace-plan0009', '.']);
     container = runId;
     docker([
@@ -167,6 +174,8 @@ try {
       '--rm',
       '--name',
       container,
+      '--network',
+      network,
       '-p',
       '127.0.0.1:4177:10000',
       '-e',
@@ -224,7 +233,7 @@ try {
     const url = new URL(request.url());
     if (
       url.pathname.startsWith('/api/') &&
-      !/^\/api\/(?:v1\/(?:me$|auth\/|project-categories(?:\/|$)|widget-types$|widgets(?:\/|$))|v2\/(?:projects(?:\/|$)|tasks(?:\/|$)|journals(?:\/|$)|documents(?:\/|$)|attachments(?:\/|$)|milestones(?:\/|$)|links(?:\/|$)|overview$)|v3\/dashboards\/home(?:\/|$))/.test(
+      !/^\/api\/(?:v1\/(?:me$|auth\/|project-categories(?:\/|$)|widget-types$|widgets(?:\/|$))|v2\/(?:integrations\/github(?:\/|$)|projects(?:\/|$)|tasks(?:\/|$)|journals(?:\/|$)|documents(?:\/|$)|attachments(?:\/|$)|milestones(?:\/|$)|links(?:\/|$)|overview$)|v3\/dashboards\/home(?:\/|$))/.test(
         url.pathname,
       )
     )
@@ -236,13 +245,15 @@ try {
     assert(response.status() >= 400 || response.status() === 302);
     assert(!(response.headers()['content-type'] ?? '').includes('text/html'));
   }
-  const loginDestination = journalSearchPhase
-    ? '/journals'
-    : categoryOnlyPhase
-      ? '/projects?category=uncategorized&q=hello'
-      : dashboardPhase
-        ? '/projects?category=all&q=hello'
-        : '/projects/example?scope=all&q=hello';
+  const loginDestination = githubPhase
+    ? '/github/connection-result?github=connected'
+    : journalSearchPhase
+      ? '/journals'
+      : categoryOnlyPhase
+        ? '/projects?category=uncategorized&q=hello'
+        : dashboardPhase
+          ? '/projects?category=all&q=hello'
+          : '/projects/example?scope=all&q=hello';
   await page.goto(origin + loginDestination);
   assert.equal(await page.title(), 'devspace. · 나만의 개발 작업실');
   await page.getByRole('button', { name: 'Google로 계속하기' }).click();
@@ -345,7 +356,10 @@ try {
   assert.equal((await verifiedFocus).status(), 200);
   await page.waitForLoadState('networkidle');
   assert(await retainedShell.evaluate((node) => node.isConnected));
-  assert.deepEqual(focusReads, ['/api/v1/me']);
+  assert.deepEqual(
+    focusReads.sort(),
+    githubPhase ? ['/api/v1/me', '/api/v2/integrations/github/account'] : ['/api/v1/me'],
+  );
   page.off('request', observeFocus);
   console.log(
     'Real focus verification preserves the application DOM and feature stores without business refetch.',
@@ -375,6 +389,7 @@ try {
     await validateDocuments({ page, context, origin, sql, alice, output });
   }
   if (layoutPhase) await validateWorkspaceLayout({ page, context, origin, output });
+  if (githubPhase) await validateGitHub({ page, context, origin, output, contract });
   const businessRowsBeforeAuth = sql(
     'select (select count(*) from projects)+(select count(*) from tasks)+(select count(*) from journals)+(select count(*) from milestones)+(select count(*) from links)',
   );
@@ -500,6 +515,13 @@ try {
       docker(['stop', container]);
     } catch {
       /* already exited */
+    }
+  }
+  if (network) {
+    try {
+      docker(['network', 'rm', network]);
+    } catch {
+      /* already removed */
     }
   }
   for (const child of children.reverse()) {

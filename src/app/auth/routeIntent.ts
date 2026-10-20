@@ -18,12 +18,19 @@ export function safeReturnTo(candidate: string): string {
     }
     const url = new URL(candidate, 'https://local.invalid');
     if (
-      !supported.test(url.pathname) ||
+      !(supported.test(url.pathname) || /^\/github(?:\/connection-result)?$/.test(url.pathname)) ||
       url.pathname !== candidate.split('?')[0] ||
       /%(?:2e|2f|5c|25)/i.test(url.pathname)
     )
       return '/';
     const query = new URLSearchParams();
+    const github = url.searchParams.get('github');
+    if (
+      url.pathname === '/github/connection-result' &&
+      github &&
+      ['connected', 'denied', 'account_conflict', 'failed'].includes(github)
+    )
+      query.set('github', github);
     for (const key of [
       'scope',
       'category',

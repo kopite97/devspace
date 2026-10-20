@@ -12,6 +12,7 @@ export class HttpError extends Error {
     message: string,
     public readonly fieldErrors: Record<string, string> = {},
     public readonly requestId?: string,
+    public readonly retryAfter?: string,
   ) {
     super(message);
     this.name = 'HttpError';
@@ -204,6 +205,7 @@ export function createHttpClient(deps: {
             : 'The request could not be completed.',
           fields,
           text(body.requestId),
+          response.headers.get('Retry-After') ?? undefined,
         );
         if (
           (response.status === 401 && !reportedUnauthorized) ||

@@ -36,6 +36,9 @@ import type { DocumentMemory } from '../../features/documents/controller';
 import { DocumentWorkspace } from '../../features/documents/DocumentWorkspace';
 import { JournalDocuments } from '../../features/journal/documentCollection';
 import { ServerJournalViewerPage } from '../../pages/ServerJournalViewerPage';
+import { GitHubStore } from '../../features/github/store';
+import { ProjectRepositories } from '../../features/github/ProjectRepositories';
+import { GitHubPage } from '../../pages/GitHubPage';
 export function PrivateWorkspace({
   transport: sessionTransport,
   url,
@@ -86,6 +89,7 @@ export function PrivateWorkspace({
   const [dashboard] = useState(() => new DashboardStore(transport));
   const [links] = useState(() => new LinkStore(transport));
   const [queryManager] = useState(() => new QueryManager());
+  const [github] = useState(() => new GitHubStore(transport, queryManager));
   const [documents] = useState(() => new DocumentStore(transport, queryManager));
   const [journalDocuments] = useState(() => new JournalDocuments(transport, queryManager));
   documents.onChanged = () => journalDocuments.invalidateDocuments();
@@ -103,6 +107,34 @@ export function PrivateWorkspace({
   tasks.onInvalidate = () => {
     overview.invalidate();
     dashboard.invalidate();
+  };
+  tasks.onProtected = () => {
+    overview.invalidate(true);
+    dashboard.clearProtectedData();
+    for (const memory of [taskMemory, ...Object.values(dashboardMemory.tasks)])
+      if (memory.editor?.baseline && tasks.isProtected(memory.editor.baseline.id))
+        memory.editor = undefined;
+  };
+  overview.onPartial = () => tasks.observePartial();
+  dashboard.onPartial = () => tasks.observePartial();
+  github.onChanged = () => {
+    tasks.invalidate();
+    overview.invalidate(true);
+    dashboard.invalidate();
+  };
+  github.onProtected = (linkId) => {
+    tasks.hideSources(linkId);
+    if (
+      taskMemory.editor?.baseline?.source &&
+      (!linkId || taskMemory.editor.baseline.source.linkId === linkId)
+    )
+      taskMemory.editor = undefined;
+    for (const memory of Object.values(dashboardMemory.tasks))
+      if (
+        memory.editor?.baseline?.source &&
+        (!linkId || memory.editor.baseline.source.linkId === linkId)
+      )
+        memory.editor = undefined;
   };
   categories.onChanged = (kind) => {
     if (kind !== 'rename') projects.counts.invalidate();
@@ -150,6 +182,7 @@ export function PrivateWorkspace({
           links.dispose();
           projects.dispose();
           queryManager.dispose();
+          github.dispose();
           categories.dispose();
           overview.dispose();
           tasks.dispose();
@@ -178,6 +211,16 @@ export function PrivateWorkspace({
   ]);
   const pathname = url.pathname.replace(/\/+$/, '') || '/';
   const renderPage = () => {
+    if (pathname === '/github' || pathname === '/github/connection-result')
+      return (
+        <GitHubPage
+          store={github}
+          result={
+            pathname.endsWith('/connection-result') ? url.searchParams.get('github') : undefined
+          }
+          onProjects={() => onNavigate('/projects')}
+        />
+      );
     const journalMatch = pathname.match(
       /^\/journals\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/,
     );
@@ -244,6 +287,14 @@ export function PrivateWorkspace({
           url={url}
           onNavigate={onNavigate}
           memory={memory}
+          renderGitHub={(project) => (
+            <ProjectRepositories
+              store={github}
+              project={project.id}
+              archived={project.status === 'archived'}
+              onAccount={() => onNavigate('/github')}
+            />
+          )}
           renderTasks={(id) => (
             <ApiTaskManager
               store={tasks}

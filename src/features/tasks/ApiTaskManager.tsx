@@ -107,6 +107,10 @@ export function ApiTaskManager({
     busy(id, false);
   };
   const mutate = async (task: ApiTask, status?: TaskStatus) => {
+    if (status && task.source) {
+      setNotice('이 Task의 상태는 GitHub에서 관리합니다.');
+      return;
+    }
     if (locks.current.has(task.id) || (status && status === task.status)) return;
     busy(task.id, true);
     setNotice('');

@@ -1,5 +1,12 @@
 import { expect, it } from 'vitest';
 import { consumeLoginError, loginUrl, safeReturnTo } from './routeIntent';
+it('preserves only known GitHub result values without OAuth credentials', () => {
+  expect(safeReturnTo('/github/connection-result?github=connected&code=secret&state=secret')).toBe(
+    '/github/connection-result?github=connected',
+  );
+  expect(safeReturnTo('/github?github=connected')).toBe('/github');
+  expect(safeReturnTo('//github.com')).toBe('/');
+});
 it('retains UUID Journal and Document deep links while rejecting malformed nested routes', () => {
   const id = '00000000-0000-0000-0000-000000000001';
   for (const path of [`/journals/${id}`, `/documents/${id}`, `/documents/${id}/edit`])

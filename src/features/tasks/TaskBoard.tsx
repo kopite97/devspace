@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { Badge } from '../../shared/ui/controls';
 import { type Scope } from '../projects/scope';
 import { type TaskPresentation as Task } from './presentation';
+import { TaskSourceInfo } from './TaskSourceInfo';
 export function TaskBoard({
   scope,
   tasks,
@@ -56,7 +57,7 @@ export function TaskBoard({
               event.preventDefault();
               event.stopPropagation();
               const task = filtered.find((t) => t.id === dragged);
-              if (task && task.status !== status && !pending?.has(task.id))
+              if (task && !task.source && task.status !== status && !pending?.has(task.id))
                 onTaskChange(task.id, status, task.revision);
               setDragged(null);
               setTarget(null);
@@ -78,10 +79,13 @@ export function TaskBoard({
                   className={`task ${dragged === t.id ? 'task-dragging' : ''}`}
                   key={t.id}
                   data-task-id={t.id}
-                  draggable={!readOnly && !pending?.has(t.id)}
+                  draggable={!readOnly && !t.source && !pending?.has(t.id)}
                   aria-busy={pending?.has(t.id) || undefined}
                   onDragStart={(event) => {
-                    if (readOnly) return;
+                    if (readOnly || t.source) {
+                      event.preventDefault();
+                      return;
+                    }
                     event.stopPropagation();
                     event.dataTransfer.setData('application/x-devspace-task', t.id);
                     event.dataTransfer.effectAllowed = 'move';
@@ -94,6 +98,7 @@ export function TaskBoard({
                   }}
                 >
                   <small>{t.project}</small>
+                  <TaskSourceInfo source={t.source} />
                   <h4>
                     {onEdit ? (
                       <button
@@ -127,7 +132,7 @@ export function TaskBoard({
                   <label className="task-status">
                     <span className="sr-only">{t.title} 상태</span>
                     <select
-                      disabled={readOnly || pending?.has(t.id)}
+                      disabled={readOnly || !!t.source || pending?.has(t.id)}
                       value={t.status}
                       onChange={(e) => {
                         const next = e.target.value as Task['status'];

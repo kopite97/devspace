@@ -81,6 +81,9 @@ export const test = base.extend<{ isolation: void }>({
       await context.route('**/api/v2/tasks?*', (route) =>
         route.fulfill({ json: { items: [], total: 0, nextCursor: null } }),
       );
+      await context.route('**/api/v2/projects/*/github/repositories', (route) =>
+        route.fulfill({ json: [] }),
+      );
       await context.route('**/api/v2/tasks/stats?*', (route) =>
         route.fulfill({
           json: { counts: { todo: 0, doing: 0, done: 0 }, total: 0, asOf: '2026-09-13T00:00:00Z' },

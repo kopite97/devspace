@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { Plus } from 'lucide-react';
 import { HttpError } from '../../shared/http/client';
 import { useQuery } from '../../shared/http/query';
@@ -115,6 +115,8 @@ function VerifiedDetail({ store, id, children, actions, onBack, category }: Deta
   const missing = state.error instanceof HttpError && state.error.status === 404;
   const project = missing ? undefined : state.data;
   const verified = state.status === 'ready' && !state.stale;
+  const hasVerified = useRef(false);
+  if (verified) hasVerified.current = true;
   return (
     <ProjectDetailLayout
       compact
@@ -141,7 +143,7 @@ function VerifiedDetail({ store, id, children, actions, onBack, category }: Deta
       {project ? (
         <>
           <ProjectSummary project={projectPresentation(project)} category={category?.(project)} />
-          {verified && children(project)}
+          {(verified || (hasVerified.current && state.status !== 'error')) && children(project)}
         </>
       ) : (
         state.status !== 'loading' && (

@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-20",
+  "frontendOrigin": "http://127.0.0.1:5173",
+  "backendOrigin": "http://127.0.0.1:8080",
+  "backendCommit": "d15f646510e7c94f05f2034cab37ba4e5960e153",
+  "frontendBaseCommit": "0ce0e75378d8ce42b2e57300bb0f2e21cb1bc2e5",
+  "accountStatus": "connected",
+  "validationProjectId": "b9dd9890-c34e-44d6-b1bc-bc296969f738",
+  "validationLinkId": "0ad9feb1-0c75-40e0-aa79-5232a963a135",
+  "import": {
+    "issueNumber": 2,
+    "issueId": 5917908672,
+    "acceptedStatus": 202,
+    "jobId": "dd4573dc-037f-463e-894f-86495ad22d34",
+    "jobReadStatus": 200,
+    "state": "completed",
+    "completedCount": 1,
+    "failedCount": 0,
+    "taskId": "07940a9f-babf-46c8-8ab6-d1f9f84d807e"
+  },
+  "taskAfterAllowedEdit": {
+    "status": 200,
+    "revision": 2,
+    "priority": "high",
+    "tag": "plan0031",
+    "sourceType": "github"
+  },
+  "validationSettingsRestored": {
+    "revision": 5,
+    "generation": 5,
+    "enabled": false,
+    "paused": false,
+    "baselineReady": true,
+    "criteria": { "labelIds": [], "assigneeIds": [] },
+    "mapping": { "todoLabelId": null, "doingLabelId": null, "doneLabelId": null }
+  },
+  "lastObservedTaskJob": {
+    "id": "d7b2352d-1945-4962-ba88-ffccf98276d7",
+    "kind": "mapping",
+    "state": "completed"
+  },
+  "existingProjectSettingsRestored": {
+    "projectId": "a5aecdea-4718-4535-9cea-f2af79a5a683",
+    "revision": 8,
+    "generation": 7,
+    "enabled": false,
+    "paused": false,
+    "baselineReady": true,
+    "criteria": { "labelIds": [], "assigneeIds": [] },
+    "mapping": {
+      "todoLabelId": 12747631888,
+      "doingLabelId": 12747632662,
+      "doneLabelId": 12747633481
+    }
+  },
+  "actualWebhookDeliveryTested": false
+}

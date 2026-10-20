@@ -37,3 +37,27 @@ it('deduplicates identical filters and ignores old read publication across mutat
   await first;
   expect(query.getSnapshot().data?.projects.total).toBe(2);
 });
+it('reports partial external data through the composition boundary without changing server counts', async () => {
+  const lifecycle = new Lifecycle();
+  const store = new OverviewStore({
+    lifecycle,
+    generation: 0,
+    recoverSecurity: async () => {},
+    request: createHttpClient({
+      lifecycle,
+      fetch: async () => Response.json({ ...data(2), externalDataUnavailable: true }),
+    }),
+  });
+  let protectedCount = 0;
+  store.onPartial = () => {
+    protectedCount++;
+  };
+  const query = store.query({ category: 'all' });
+  await query.load();
+  expect(protectedCount).toBe(1);
+  expect(query.getSnapshot().data).toMatchObject({
+    projects: { total: 2 },
+    externalDataUnavailable: true,
+  });
+  store.dispose();
+});

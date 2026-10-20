@@ -55,6 +55,11 @@ export class Query<T> {
     this.controller?.abort();
     this.work = undefined;
   }
+  /** Retire in-flight work and protected snapshots without scheduling an automatic reload. */
+  clearData(error: unknown = new Error('접근 상태를 다시 확인해 주세요.')) {
+    this.cancel();
+    this.publish({ status: 'error', error, stale: true });
+  }
   seed(data: T) {
     this.publish({ status: 'idle', data, stale: true });
   }

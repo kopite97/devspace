@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useQuery, type Query } from '../../shared/http/query';
 import { Button, EmptyState, Progress } from '../../shared/ui/controls';
 import { TaskBoard } from '../../features/tasks/TaskBoard';
+import { ExternalDataNotice } from '../../features/tasks/TaskReads';
 import { parseTask, taskPresentation } from '../../features/tasks/apiModel';
 import type { TaskStore } from '../../features/tasks/apiStore';
 import { useTaskStatusActions } from '../../features/tasks/useTaskStatusActions';
@@ -136,6 +137,7 @@ function OverviewData({
         </div>
       </div>
       <p className="muted">보관된 프로젝트 {archived}개 · 전체 프로젝트 집계</p>
+      <ExternalDataNotice unavailable={tasks?.externalDataUnavailable === true} />
       {projectState.status === 'error' && !projectState.data && (
         <p className="notice" role="alert">
           프로젝트 목록을 불러오지 못했습니다.{' '}
@@ -205,6 +207,7 @@ function BoardData({
         }
       />
       {stats && <p className="muted">전체 {number(stats.total)}개 · 서버가 저장한 작업 보드</p>}
+      <ExternalDataNotice unavailable={stats?.externalDataUnavailable === true} />
     </>
   );
 }
