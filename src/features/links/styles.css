@@ -167,7 +167,8 @@
   overflow-wrap: anywhere;
 }
 .library-page-content > .empty-state {
-  padding: 28px 12px;
+  padding: 24px 0;
+  text-align: left;
 }
 @media (max-width: 1150px) {
   .library-page-content > .library-toolbar,
@@ -197,7 +198,7 @@
 }
 .link-copy > .muted {
   display: block;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.6;
   margin-top: 4px;
 }

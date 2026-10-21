@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "realBackendAndOidc": true,
+  "successfulBusinessResponsesMocked": false,
+  "longBodyLength": 20000,
+  "titleLength": 120,
+  "widths": [
+    1440,
+    1280,
+    1024,
+    390,
+    320
+  ],
+  "nativeZoomPercent": 200,
+  "cachedFailures": [
+    404,
+    500
+  ],
+  "creationErrorSurvivesDetailRetry": true,
+  "focusJumpsWithoutRequestsOrHistoryChanges": true,
+  "cursorPagination": {
+    "total": 21,
+    "firstPage": 20,
+    "failureRetainsRows": true,
+    "retry": true
+  }
+}

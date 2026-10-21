@@ -2,7 +2,9 @@ import http from 'node:http';
 import { createHash, generateKeyPairSync, randomBytes, sign } from 'node:crypto';
 
 // Disposable local protocol fixture. Never imported by application/build inputs.
-export async function startProvider() {
+export async function startProvider(frontendOrigin = 'http://127.0.0.1:4175') {
+  if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(frontendOrigin))
+    throw new Error('The disposable identity provider requires a loopback frontend.');
   const issuer = 'http://127.0.0.1:18999';
   const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
   const jwk = {
@@ -39,6 +41,7 @@ export async function startProvider() {
       const callback = params.get('redirect_uri');
       if (
         ![
+          frontendOrigin + '/api/v1/auth/callback/google',
           'http://127.0.0.1:4175/api/v1/auth/callback/google',
           'http://127.0.0.1:4177/api/v1/auth/callback/google',
         ].includes(callback) ||

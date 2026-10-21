@@ -2,6 +2,43 @@
   display: grid;
   gap: 16px;
 }
+.journal-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.journal-picker-choice {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  margin-bottom: 8px;
+}
+.journal-picker-create {
+  display: flex;
+  margin-top: 16px;
+}
+.journal-create-title {
+  margin-top: 20px;
+  font-size: 15px;
+  line-height: var(--leading-body);
+  overflow-wrap: anywhere;
+}
+.journal-create-meta {
+  margin: 4px 0 16px;
+  font-size: 13px;
+  line-height: var(--leading-body);
+  overflow-wrap: anywhere;
+}
+.journal-create-description {
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  overflow-wrap: anywhere;
+}
+.journal-create-description + [role='alert'] {
+  margin-top: 12px;
+}
 .journal-search-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -70,8 +107,9 @@ button.document-row:hover:not(:disabled) {
 }
 .journal-row strong {
   display: block;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: var(--leading-body);
 }
 .journal-row small {
   display: block;
@@ -180,7 +218,8 @@ button.document-row:hover:not(:disabled) {
   margin: 0;
 }
 .content-panel.journal-page-content {
-  padding: 18px 0 0;
+  padding: 0;
+  border-top: 0;
 }
 .journal-page-content > .journal-query-toolbar {
   grid-template-columns: repeat(2, minmax(0, 200px)) minmax(0, 180px);
@@ -251,7 +290,8 @@ button.document-row:hover:not(:disabled) {
   }
 }
 @media (max-width: 600px) {
-  .journal-list-item {
+  .journal-list-item,
+  .journal-page-content > .journal-list-item {
     flex-wrap: wrap;
     gap: 0;
     padding-bottom: 12px;
@@ -261,7 +301,7 @@ button.document-row:hover:not(:disabled) {
     padding-bottom: 12px;
   }
   .journal-list-item > .feature-actions {
-    margin-left: auto;
+    margin-left: 0;
   }
   .form-grid.journal-query-toolbar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -385,6 +425,10 @@ button.document-row:hover:not(:disabled) {
 }
 .journal-document-row.document-row {
   padding: 16px 0;
+  border-bottom: 0;
+}
+.journal-document-row + .journal-document-row {
+  border-top: 1px solid var(--border);
 }
 .journal-document-row > span {
   min-width: 0;
@@ -417,8 +461,8 @@ button.document-row:hover:not(:disabled) {
   color: var(--muted);
 }
 .journal-document-footer {
-  margin-top: 20px;
-  padding-top: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
   border-top: 1px solid var(--border);
 }
 .journal-document-section > [role] {

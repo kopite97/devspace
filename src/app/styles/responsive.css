@@ -43,7 +43,7 @@
     padding: 17px 15px;
   }
   .widget-header h2 {
-    font-size: 12px;
+    font-size: 16px;
   }
   .widget-header .badge {
     font-size: 12px;
@@ -81,7 +81,7 @@
     gap: 6px;
   }
   .service-row strong {
-    font-size: 12px;
+    font-size: var(--text-body);
   }
   .service-summary {
     font-size: 12px;
@@ -199,7 +199,7 @@
     grid-column: span 1;
   }
   .widget-header h2 {
-    font-size: 13px;
+    font-size: 16px;
   }
   .kanban {
     gap: 7px;

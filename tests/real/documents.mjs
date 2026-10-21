@@ -4,7 +4,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { validateJournalDetail } from './journal-detail.mjs';
 
-export async function validateDocuments({ page, context, origin, output, sql }) {
+export async function validateDocuments({
+  page,
+  context,
+  origin,
+  output,
+  sql,
+  apiBoundaries = true,
+}) {
   page.setDefaultTimeout(15000);
   const png = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1cAAAAASUVORK5CYII=',
@@ -555,76 +562,86 @@ export async function validateDocuments({ page, context, origin, output, sql }) 
     await post(`/api/v2/journals/${journal.id}/documents`, { title: '', content: [] }),
     201,
   );
-  const putBoundary = (data) =>
-    context.request.put(origin + `/api/v2/documents/${boundary.id}`, { headers, data });
-  await json(await putBoundary({ title: 'x'.repeat(200), content: [], attachmentIds: [] }));
-  assert.equal(
-    (await putBoundary({ title: 'x'.repeat(201), content: [], attachmentIds: [] })).status(),
-    400,
-  );
-  // JSON array/string punctuation takes four bytes; test the parsed content boundary exactly.
-  await json(await putBoundary({ title: '', content: ['x'.repeat(1048572)], attachmentIds: [] }));
-  assert.equal(
-    (await putBoundary({ title: '', content: ['x'.repeat(1048573)], attachmentIds: [] })).status(),
-    413,
-  );
-  const overRequest = await context.request.put(origin + `/api/v2/documents/${boundary.id}`, {
-    headers: { ...headers, 'Content-Type': 'application/json' },
-    data: JSON.stringify({ title: '', content: [], attachmentIds: [] }) + ' '.repeat(1114112),
-  });
-  assert.equal(overRequest.status(), 413);
-  const uploadBoundary = (buffer, name = 'boundary.txt', mimeType = 'text/plain') =>
-    context.request.post(origin + '/api/v2/attachments', {
-      headers,
-      multipart: { documentId: boundary.id, file: { name, mimeType, buffer } },
+  let multipartOverflow = 'not run: document UI scope';
+  if (apiBoundaries) {
+    const putBoundary = (data) =>
+      context.request.put(origin + `/api/v2/documents/${boundary.id}`, { headers, data });
+    await json(await putBoundary({ title: 'x'.repeat(200), content: [], attachmentIds: [] }));
+    assert.equal(
+      (await putBoundary({ title: 'x'.repeat(201), content: [], attachmentIds: [] })).status(),
+      400,
+    );
+    // JSON array/string punctuation takes four bytes; test the parsed content boundary exactly.
+    await json(await putBoundary({ title: '', content: ['x'.repeat(1048572)], attachmentIds: [] }));
+    assert.equal(
+      (
+        await putBoundary({ title: '', content: ['x'.repeat(1048573)], attachmentIds: [] })
+      ).status(),
+      413,
+    );
+    const overRequest = await context.request.put(origin + `/api/v2/documents/${boundary.id}`, {
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      data: JSON.stringify({ title: '', content: [], attachmentIds: [] }) + ' '.repeat(1114112),
     });
-  assert.equal((await uploadBoundary(Buffer.alloc(0))).status(), 400);
-  assert.equal((await uploadBoundary(Buffer.from([255, 254, 255]))).status(), 400);
-  assert.equal(
-    (await uploadBoundary(Buffer.from('not a png'), 'invalid.png', 'image/png')).status(),
-    400,
-  );
-  const large = await json(await uploadBoundary(Buffer.alloc(10485760, 120)), 201);
-  assert.equal((await uploadBoundary(Buffer.alloc(10485761, 120))).status(), 413);
-  let multipartOverflow = '413';
-  const attachmentsBeforeOverflow = sql(
-    `select count(*) from attachments where document_id='${boundary.id}'`,
-  );
-  try {
-    assert.equal((await uploadBoundary(Buffer.alloc(11534337, 120))).status(), 413);
-  } catch (error) {
-    if (!/ECONNRESET|socket hang up|apiRequestContext\.post: aborted/.test(String(error)))
-      throw error;
-    multipartOverflow = 'connection reset before response';
+    assert.equal(overRequest.status(), 413);
+    const uploadBoundary = (buffer, name = 'boundary.txt', mimeType = 'text/plain') =>
+      context.request.post(origin + '/api/v2/attachments', {
+        headers,
+        multipart: { documentId: boundary.id, file: { name, mimeType, buffer } },
+      });
+    assert.equal((await uploadBoundary(Buffer.alloc(0))).status(), 400);
+    assert.equal((await uploadBoundary(Buffer.from([255, 254, 255]))).status(), 400);
+    assert.equal(
+      (await uploadBoundary(Buffer.from('not a png'), 'invalid.png', 'image/png')).status(),
+      400,
+    );
+    const large = await json(await uploadBoundary(Buffer.alloc(10485760, 120)), 201);
+    assert.equal((await uploadBoundary(Buffer.alloc(10485761, 120))).status(), 413);
+    multipartOverflow = '413';
+    const attachmentsBeforeOverflow = sql(
+      `select count(*) from attachments where document_id='${boundary.id}'`,
+    );
+    try {
+      assert.equal((await uploadBoundary(Buffer.alloc(11534337, 120))).status(), 413);
+    } catch (error) {
+      if (!/ECONNRESET|socket hang up|apiRequestContext\.post: aborted/.test(String(error)))
+        throw error;
+      multipartOverflow = 'connection reset before response';
+    }
+    assert.equal(
+      sql(`select count(*) from attachments where document_id='${boundary.id}'`),
+      attachmentsBeforeOverflow,
+    );
+    let nested = [];
+    for (let level = 0; level < 98; level++) nested = [nested];
+    await json(await putBoundary({ title: '', content: nested, attachmentIds: [] }));
+    assert.equal(
+      (await putBoundary({ title: '', content: [[nested]], attachmentIds: [] })).status(),
+      400,
+    );
+    await json(
+      await uploadBoundary(Buffer.from('filename boundary'), 'a'.repeat(251) + '.txt'),
+      201,
+    );
+    assert.equal(
+      (await uploadBoundary(Buffer.from('filename overflow'), 'a'.repeat(252) + '.txt')).status(),
+      400,
+    );
+    assert.equal(
+      (
+        await context.request.delete(origin + `/api/v2/attachments/${uploaded.id}`, { headers })
+      ).status(),
+      409,
+    );
+    assert.equal(
+      (await putBoundary({ title: '', content: [], attachmentIds: [uploaded.id] })).status(),
+      404,
+    );
+    await json(
+      await context.request.delete(origin + `/api/v2/attachments/${large.id}`, { headers }),
+    );
+    assert.equal((await context.request.get(origin + large.contentUrl)).status(), 404);
   }
-  assert.equal(
-    sql(`select count(*) from attachments where document_id='${boundary.id}'`),
-    attachmentsBeforeOverflow,
-  );
-  let nested = [];
-  for (let level = 0; level < 98; level++) nested = [nested];
-  await json(await putBoundary({ title: '', content: nested, attachmentIds: [] }));
-  assert.equal(
-    (await putBoundary({ title: '', content: [[nested]], attachmentIds: [] })).status(),
-    400,
-  );
-  await json(await uploadBoundary(Buffer.from('filename boundary'), 'a'.repeat(251) + '.txt'), 201);
-  assert.equal(
-    (await uploadBoundary(Buffer.from('filename overflow'), 'a'.repeat(252) + '.txt')).status(),
-    400,
-  );
-  assert.equal(
-    (
-      await context.request.delete(origin + `/api/v2/attachments/${uploaded.id}`, { headers })
-    ).status(),
-    409,
-  );
-  assert.equal(
-    (await putBoundary({ title: '', content: [], attachmentIds: [uploaded.id] })).status(),
-    404,
-  );
-  await json(await context.request.delete(origin + `/api/v2/attachments/${large.id}`, { headers }));
-  assert.equal((await context.request.get(origin + large.contentUrl)).status(), 404);
   // Authenticated ownership is enforced for both detail and binary data.
   const outsider = await page.context().browser().newContext();
   assert.equal(
@@ -763,6 +780,7 @@ export async function validateDocuments({ page, context, origin, output, sql }) 
         blockTypes: restored.content.map((block) => block.type),
         browserErrors: errors,
         multipartOverflow,
+        apiBoundaries,
       },
       null,
       2,

@@ -283,13 +283,14 @@ export function ApiJournalWorkspace({
       )}
       {selecting && (
         <Modal title="새 글을 연결할 일지 선택" onClose={() => setSelecting(false)}>
-          <p>
+          <p className="modal-intro">
             현재 목록에서 일지를 직접 선택해 주세요. 원하는 일지가 없으면 이 창을 닫고 검색 및
             정렬에서 조건을 변경하거나 일지를 먼저 작성하세요.
           </p>
           {state.data?.items.map((journal) => (
             <Button
               key={journal.id}
+              className="journal-picker-choice"
               onClick={() => {
                 setSelecting(false);
                 setCreatingDocument(journal);
@@ -305,6 +306,7 @@ export function ApiJournalWorkspace({
           )}
           {!state.data?.items.length && <p>선택할 일지가 없습니다.</p>}
           <Button
+            className="journal-picker-create"
             onClick={() => {
               setSelecting(false);
               startCreate();

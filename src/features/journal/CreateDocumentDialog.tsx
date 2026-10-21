@@ -68,14 +68,18 @@ export function CreateDocumentDialog({
         if (!busy) onClose();
       }}
     >
-      <p>
+      <p className="journal-create-title">
         <strong>{journal.title}</strong>
       </p>
-      <p className="muted">
+      <p className="muted journal-create-meta">
         {journal.projectName} · {journal.entryDate}
       </p>
-      <p>빈 초안을 만든 뒤 편집 화면으로 이동합니다.</p>
-      {error && <p role="alert">{error}</p>}
+      <p className="journal-create-description">빈 초안을 만든 뒤 편집 화면으로 이동합니다.</p>
+      {error && (
+        <p className="journal-create-description" role="alert">
+          {error}
+        </p>
+      )}
       <div className="modal-actions">
         <Button disabled={busy} onClick={onClose}>
           취소

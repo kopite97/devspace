@@ -7,6 +7,7 @@
   border-radius: var(--radius-sm);
   padding: 12px;
   font: inherit;
+  font-size: var(--text-input);
   line-height: 1.7;
   color: var(--text);
 }
@@ -15,12 +16,15 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 35px;
+  min-height: var(--control-height);
   padding: 8px 12px;
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: var(--text-body);
   font-weight: 550;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+  max-width: 100%;
   border: 1px solid transparent;
   transition:
     background-color var(--motion-fast),
@@ -30,7 +34,7 @@
 }
 .button-secondary {
   background: var(--surface-raised);
-  border-color: var(--border);
+  border-color: var(--control-border);
   color: var(--muted);
 }
 .button-secondary:hover:not(:disabled) {
@@ -114,6 +118,7 @@
   width: 560px;
   max-width: calc(100vw - 32px);
   max-height: 90vh;
+  overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 24px;
@@ -138,7 +143,7 @@
   font-size: 18px;
 }
 .modal-intro {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   margin: 8px 0 20px;
   line-height: 1.7;
@@ -147,7 +152,9 @@
   display: flex;
   flex-direction: column;
   gap: 7px;
-  font-size: 12px;
+  font-size: 13px;
+  line-height: var(--leading-body);
+  min-width: 0;
 }
 .field input,
 .field select {
@@ -157,14 +164,15 @@
   padding: 10px;
   color: var(--text);
   background: var(--surface-raised);
-  font-size: 12px;
+  font-size: var(--text-input);
+  min-height: var(--control-height);
 }
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 23px;
-  padding-top: 17px;
+  margin-top: 24px;
+  padding-top: 16px;
   border-top: 1px solid var(--border);
 }
 .detail-body {
@@ -176,7 +184,9 @@
 }
 .empty-state {
   text-align: center;
-  padding: 45px 20px;
+  padding: 32px 20px;
+  line-height: var(--leading-body);
+  overflow-wrap: anywhere;
   color: var(--muted);
 }
 .empty-state > svg {
@@ -210,7 +220,7 @@
   background: var(--surface-subtle);
 }
 .empty-state h3 {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 550;
 }
 .empty-state > .button {
@@ -218,7 +228,7 @@
   white-space: normal;
 }
 .empty-state p {
-  font-size: 12px;
+  font-size: var(--text-body);
   line-height: 1.8;
   margin: 12px 0;
 }

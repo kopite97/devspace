@@ -6,6 +6,11 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  --text-body: 14px;
+  --text-section: 17px;
+  --text-input: 14px;
+  --control-height: 40px;
+  --leading-body: 1.6;
   --motion-fast: 160ms;
   --motion-standard: 180ms;
   --radius-round: 50%;
@@ -27,7 +32,7 @@
   --surface-hover: #eaece9;
   --surface-raised: #fbfaf7;
   --text: #1d232c;
-  --muted: #68727f;
+  --muted: #616b77;
   --text-on-accent: #ffffff;
   --border: #d9dee2;
   --border-strong: #bfc7cf;
@@ -70,4 +75,10 @@
   --radius-progress: 6px;
   --shadow: none;
   --sidebar: 224px;
+}
+@media (max-width: 680px) {
+  :root {
+    --text-input: 16px;
+    --control-height: 44px;
+  }
 }

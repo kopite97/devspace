@@ -31,7 +31,8 @@ if (!backend) throw new Error('No sibling backend checkout with gradlew.bat was 
 const phase = process.argv.find((arg) => arg.startsWith('--projects='))?.split('=')[1];
 const categoryPhase = process.argv.includes('--categories');
 const categoryOnlyPhase = process.argv.includes('--category-only');
-const documentPhase = process.argv.includes('--documents');
+const documentUiPhase = process.argv.includes('--document-ui');
+const documentPhase = process.argv.includes('--documents') || documentUiPhase;
 const layoutPhase = process.argv.includes('--workspace-layout');
 const githubPhase = process.argv.includes('--github');
 const journalSearchPhase = process.argv.includes('--journal-search');
@@ -45,7 +46,9 @@ if (phase || categoryPhase || taskPhase || journalPhase || milestonePhase || lin
     'Historical feature phases target the retired v1 contract. Use --category-only or --dashboard for the coordinated acceptance suites.',
   );
 const nginx = process.argv.includes('--nginx');
-const origin = nginx ? 'http://127.0.0.1:4177' : 'http://127.0.0.1:4175';
+const frontendPort = Number(process.env.REAL_FRONTEND_PORT ?? 4175);
+assert(Number.isInteger(frontendPort) && frontendPort > 1023 && frontendPort < 65536);
+const origin = nginx ? 'http://127.0.0.1:4177' : `http://127.0.0.1:${frontendPort}`;
 const output = path.join(root, '.auth-validation', nginx ? 'nginx' : 'vite');
 fs.mkdirSync(output, { recursive: true });
 const children = [];
@@ -98,7 +101,7 @@ try {
     }
   }
   const before = new Set(docker(['ps', '-q']).split('\n'));
-  provider = await startProvider();
+  provider = await startProvider(origin);
   const env = {
     ...process.env,
     JAVA_HOME: process.env.JAVA_HOME || 'C:\\Users\\nellu\\.jdks\\corretto-21.0.12.1',
@@ -202,7 +205,7 @@ try {
         '--host',
         '127.0.0.1',
         '--port',
-        '4175',
+        String(frontendPort),
         '--strictPort',
       ],
       { cwd: root, env: { ...process.env, BACKEND_UPSTREAM: 'http://127.0.0.1:18080' } },
@@ -386,7 +389,15 @@ try {
       await expect(page.getByRole('button', { name: 'Log out', exact: true })).toHaveCount(1);
       await page.keyboard.press('Escape');
     }
-    await validateDocuments({ page, context, origin, sql, alice, output });
+    await validateDocuments({
+      page,
+      context,
+      origin,
+      sql,
+      alice,
+      output,
+      apiBoundaries: !documentUiPhase,
+    });
   }
   if (layoutPhase) await validateWorkspaceLayout({ page, context, origin, output });
   if (githubPhase) await validateGitHub({ page, context, origin, output, contract });

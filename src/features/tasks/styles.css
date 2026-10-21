@@ -73,10 +73,11 @@
   color: var(--muted);
 }
 .task h4 {
-  font-size: 12px;
-  font-weight: 550;
+  font-size: var(--text-body);
+  font-weight: 650;
   line-height: 1.6;
   margin-top: 6px;
+  overflow-wrap: anywhere;
 }
 .task-meta {
   display: flex;
@@ -102,7 +103,7 @@
 }
 .task-status select {
   background: transparent;
-  font-size: 12px;
+  font-size: var(--text-input);
   color: var(--muted);
   border: 0;
   width: 100%;
@@ -120,12 +121,28 @@
   text-align: center;
 }
 
-.task h4 {
-  font-size: 14px;
-  overflow-wrap: anywhere;
-}
 .task > small {
   overflow-wrap: anywhere;
+}
+.task-source-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  font-size: 13px;
+  line-height: var(--leading-body);
+}
+.task-source-filter select {
+  min-width: 0;
+  max-width: 100%;
+  min-height: var(--control-height);
+  padding: 8px 12px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: var(--text-input);
 }
 .task-title,
 .task-status select {

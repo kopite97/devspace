@@ -49,7 +49,7 @@ export function ProjectsLayout({
         </>
       }
     >
-      <div className="content-panel">
+      <div className="content-panel project-page-content">
         {!scaffold.compact && statusActions}
         {children}
       </div>

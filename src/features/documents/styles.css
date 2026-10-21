@@ -10,15 +10,28 @@
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 20px;
+  max-width: calc(800px + 2 * var(--document-gutter));
+  margin-inline: auto;
+  padding-inline: var(--document-gutter);
 }
 .document-status {
   flex: 1;
   font-size: 13px;
+  min-width: 0;
+  line-height: var(--leading-body);
+  overflow-wrap: anywhere;
 }
 .document-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+.document-surface > .notice {
+  max-width: 800px;
+  margin-inline: auto;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  font-size: 13px;
 }
 .document-paper {
   width: 100%;
@@ -111,6 +124,6 @@
     width: 100%;
   }
   .document-toolbar .button {
-    min-height: 40px;
+    min-height: 44px;
   }
 }

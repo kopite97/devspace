@@ -75,10 +75,11 @@
 }
 .widget-header h2 {
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 650;
   letter-spacing: 0;
   overflow-wrap: anywhere;
+  line-height: 1.5;
 }
 .widget-title-link {
   color: inherit;
@@ -195,7 +196,7 @@
   font-size: 12px;
 }
 .widget-small .project-info strong {
-  font-size: 12px;
+  font-size: var(--text-body);
 }
 .widget-small .project-row {
   gap: 8px;
@@ -217,8 +218,21 @@
   color: var(--muted);
 }
 .catalog-item strong {
-  font-size: 12px;
+  font-size: var(--text-body);
   color: var(--text);
+}
+.dashboard-surface:has(> .empty-state) > .page-heading {
+  flex-direction: column;
+  align-items: flex-start;
+}
+.dashboard-surface:has(> .empty-state) > .page-heading .page-heading-actions,
+.dashboard-surface:has(> .empty-state) > .page-heading .heading-actions {
+  justify-content: flex-start;
+}
+.dashboard-surface > .empty-state {
+  text-align: left;
+  max-width: 64ch;
+  padding: 16px 0 32px;
 }
 .catalog-item small {
   font-size: 12px;

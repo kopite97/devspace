@@ -206,6 +206,65 @@ export async function validateJournalDetail({
   await page.goto(origin + `/journals/${journal.id}`);
   await expect(create).toBeEnabled();
   await expect(section).toContainText('0개');
+  // Exercise the real cursor boundary without adding records to a user's workspace.
+  const pagedJournal = await json(
+    await post('/api/v2/journals', {
+      title: '연결 글 페이지 경계 검증',
+      body: '목록, 다음 페이지와 하단 이동 버튼의 경계를 확인합니다.',
+      projectId: longProject.id,
+      entryDate: '2026-10-21',
+    }),
+    201,
+  );
+  for (let index = 1; index <= 21; index++) {
+    await json(
+      await post(`/api/v2/journals/${pagedJournal.id}/documents`, {
+        title: `연결 문서 ${index} · 긴 제목과 날짜의 줄바꿈 확인`,
+        content: [],
+      }),
+      201,
+    );
+  }
+  const pagedPath = origin + `/journals/${pagedJournal.id}`;
+  const more = page.getByRole('button', { name: '문서 더 불러오기', exact: true });
+  const pagingRoute = `**/api/v2/journals/${pagedJournal.id}/documents?*`;
+  for (const width of [1440, 390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(pagedPath);
+    await expect(section.locator('.journal-document-row')).toHaveCount(20);
+    await more.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: path.join(output, `journal-more-${width}.png`) });
+    let release;
+    const pending = new Promise((resolve) => {
+      release = resolve;
+    });
+    await page.route(pagingRoute, async (route) => {
+      if (!new URL(route.request().url()).searchParams.has('cursor')) return route.continue();
+      await pending;
+      await route.fulfill({ status: 500, json: { code: 'PAGING_TEST_FAILURE' } });
+    });
+    await more.click();
+    await expect(more).toBeDisabled();
+    await page.screenshot({ path: path.join(output, `journal-more-pending-${width}.png`) });
+    release();
+    await expect(section.getByRole('alert')).toBeVisible();
+    await expect(section.locator('.journal-document-row')).toHaveCount(20);
+    await section.getByRole('alert').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: path.join(output, `journal-more-error-${width}.png`) });
+    await page.unroute(pagingRoute);
+    await page.getByRole('button', { name: '다음 페이지 재시도', exact: true }).click();
+    await expect(section.locator('.journal-document-row')).toHaveCount(21);
+    await expect(more).toHaveCount(0);
+    await page
+      .getByRole('button', { name: '작성 위치로 이동', exact: true })
+      .scrollIntoViewIfNeeded();
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await page.screenshot({ path: path.join(output, `journal-more-complete-${width}.png`) });
+    // A fresh navigation avoids treating a cached 21-row collection as a first page.
+    await page.reload();
+    await expect(section.locator('.journal-document-row')).toHaveCount(20);
+  }
+  await page.goto(origin + `/journals/${journal.id}`);
   fs.writeFileSync(
     path.join(output, 'journal-detail-result.json'),
     JSON.stringify(
@@ -220,6 +279,7 @@ export async function validateJournalDetail({
         cachedFailures: [404, 500],
         creationErrorSurvivesDetailRetry: true,
         focusJumpsWithoutRequestsOrHistoryChanges: true,
+        cursorPagination: { total: 21, firstPage: 20, failureRetainsRows: true, retry: true },
       },
       null,
       2,

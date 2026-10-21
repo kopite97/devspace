@@ -29,9 +29,10 @@
 }
 .milestone strong {
   display: block;
-  font-size: 12px;
+  font-size: var(--text-body);
   font-weight: 550;
   margin: 6px 0;
+  line-height: var(--leading-body);
 }
 .milestone > svg {
   margin-left: auto;

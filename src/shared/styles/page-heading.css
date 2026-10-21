@@ -59,7 +59,7 @@
   min-height: 40px;
   padding: 10px 14px;
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: var(--text-body);
   font-weight: 550;
   line-height: 18px;
   gap: 7px;

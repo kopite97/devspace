@@ -11,11 +11,13 @@ export function GitHubPage({
   onProjects: () => void;
 }) {
   return (
-    <PageScaffold
-      title="GitHub 연동"
-      description="계정을 연결하고 프로젝트의 Issue를 Task로 관리하세요."
-    >
-      <AccountConnection store={store} result={result} onProjects={onProjects} />
-    </PageScaffold>
+    <div className="github-page">
+      <PageScaffold
+        title="GitHub 연동"
+        description="계정을 연결하고 프로젝트의 Issue를 Task로 관리하세요."
+      >
+        <AccountConnection store={store} result={result} onProjects={onProjects} />
+      </PageScaffold>
+    </div>
   );
 }

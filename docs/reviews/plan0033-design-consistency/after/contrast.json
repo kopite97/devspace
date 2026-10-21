@@ -1,0 +1,47 @@
+{
+  "body": {
+    "foreground": "#1d232c",
+    "background": "#f8f7f4",
+    "ratio": 14.75
+  },
+  "mutedBase": {
+    "foreground": "#616b77",
+    "background": "#f8f7f4",
+    "ratio": 5.05
+  },
+  "mutedHover": {
+    "foreground": "#616b77",
+    "background": "#eaece9",
+    "ratio": 4.56
+  },
+  "mutedRaised": {
+    "foreground": "#616b77",
+    "background": "#fbfaf7",
+    "ratio": 5.19
+  },
+  "selected": {
+    "foreground": "#1f5fea",
+    "background": "#e8efff",
+    "ratio": 4.69
+  },
+  "primary": {
+    "foreground": "#ffffff",
+    "background": "#1f5fea",
+    "ratio": 5.41
+  },
+  "sidebar": {
+    "foreground": "#a6afbf",
+    "background": "#101923",
+    "ratio": 8.02
+  },
+  "focus": {
+    "foreground": "#1f5fea",
+    "background": "#f8f7f4",
+    "ratio": 5.05
+  },
+  "control": {
+    "foreground": "color(srgb 0.494902 0.523137 0.556078)",
+    "background": "#fbfaf7",
+    "ratio": 3.56
+  }
+}

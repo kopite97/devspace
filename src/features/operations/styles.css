@@ -39,8 +39,9 @@
 }
 .service-row strong {
   display: block;
-  font-size: 12px;
+  font-size: var(--text-body);
   font-weight: 550;
+  line-height: var(--leading-body);
 }
 .service-row small {
   display: block;

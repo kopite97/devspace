@@ -200,7 +200,7 @@ export function TaskReads({
   return (
     <>
       <div className="feature-actions">
-        <label>
+        <label className="task-source-filter">
           GitHub 상태{' '}
           <select
             aria-label="GitHub 상태 필터"

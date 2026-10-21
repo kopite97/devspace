@@ -12,7 +12,7 @@
   width: 100%;
   max-width: 720px;
   min-width: 0;
-  margin: 36px auto 0;
+  margin: 24px auto 0;
 }
 .login-stack-categories {
   display: flex;
@@ -62,7 +62,7 @@
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  height: 132px;
+  height: 112px;
   padding-bottom: 8px;
 }
 .login-stack-lane .login-workflow-technology {
@@ -96,7 +96,7 @@
   width: 100%;
   max-width: 720px;
   margin: 0 auto;
-  padding-bottom: 112px;
+  padding-bottom: 88px;
 }
 .login-workflow-track::before {
   content: '';
@@ -198,7 +198,7 @@
 }
 .login-workflow-technologies {
   position: absolute;
-  top: 104px;
+  top: 88px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1;

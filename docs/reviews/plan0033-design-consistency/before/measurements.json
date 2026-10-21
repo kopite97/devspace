@@ -1,0 +1,188 @@
+[
+  {
+    "name": "projects",
+    "width": 1440,
+    "overflow": false
+  },
+  {
+    "name": "detail",
+    "width": 1440,
+    "overflow": false
+  },
+  {
+    "name": "tasks",
+    "width": 1440,
+    "overflow": false
+  },
+  {
+    "name": "github",
+    "width": 1440,
+    "overflow": false
+  },
+  {
+    "name": "library",
+    "width": 1440,
+    "overflow": false
+  },
+  {
+    "name": "task-modal",
+    "width": 1440,
+    "font": "12px",
+    "height": 36
+  },
+  {
+    "name": "projects",
+    "width": 1280,
+    "overflow": false
+  },
+  {
+    "name": "detail",
+    "width": 1280,
+    "overflow": false
+  },
+  {
+    "name": "tasks",
+    "width": 1280,
+    "overflow": false
+  },
+  {
+    "name": "github",
+    "width": 1280,
+    "overflow": false
+  },
+  {
+    "name": "library",
+    "width": 1280,
+    "overflow": false
+  },
+  {
+    "name": "task-modal",
+    "width": 1280,
+    "font": "12px",
+    "height": 36
+  },
+  {
+    "name": "projects",
+    "width": 1024,
+    "overflow": false
+  },
+  {
+    "name": "detail",
+    "width": 1024,
+    "overflow": false
+  },
+  {
+    "name": "tasks",
+    "width": 1024,
+    "overflow": false
+  },
+  {
+    "name": "github",
+    "width": 1024,
+    "overflow": false
+  },
+  {
+    "name": "library",
+    "width": 1024,
+    "overflow": false
+  },
+  {
+    "name": "task-modal",
+    "width": 1024,
+    "font": "12px",
+    "height": 36
+  },
+  {
+    "name": "projects",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "name": "detail",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "name": "tasks",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "name": "github",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "name": "library",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "name": "task-modal",
+    "width": 768,
+    "font": "12px",
+    "height": 36
+  },
+  {
+    "name": "projects",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "name": "detail",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "name": "tasks",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "name": "github",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "name": "library",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "name": "task-modal",
+    "width": 390,
+    "font": "12px",
+    "height": 44
+  },
+  {
+    "name": "projects",
+    "width": 320,
+    "overflow": false
+  },
+  {
+    "name": "detail",
+    "width": 320,
+    "overflow": false
+  },
+  {
+    "name": "tasks",
+    "width": 320,
+    "overflow": false
+  },
+  {
+    "name": "github",
+    "width": 320,
+    "overflow": false
+  },
+  {
+    "name": "library",
+    "width": 320,
+    "overflow": false
+  },
+  {
+    "name": "task-modal",
+    "width": 320,
+    "font": "12px",
+    "height": 44
+  }
+]
